@@ -28,6 +28,7 @@ const mockAniversariantes: Aniversariante[] = [
 
 export const AniversarioService = {
   listar: () => safeRequest(() => http<Aniversariante[]>("/aniversarios"), mockAniversariantes),
+  
   listarSemana: () =>
     safeRequest(() => http<Aniversariante[]>("/aniversarios/semana"), mockAniversariantes),
 };

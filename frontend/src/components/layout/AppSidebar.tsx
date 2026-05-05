@@ -1,4 +1,6 @@
 import { NavLink, useLocation } from "react-router-dom";
+import logo from "../../../src/assets/images/logo-isg.png";
+
 import {
   Sidebar,
   SidebarContent,
@@ -11,7 +13,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import {
-  LayoutDashboard,
+  Home,
   MessageSquare,
   Users,
   UserRound,
@@ -21,12 +23,13 @@ import {
 } from "lucide-react";
 
 const items = [
-  { title: "Home", url: "/home", icon: LayoutDashboard },
+  { title: "Home", url: "/home", icon: Home },
+  { title: "Consultas", url: "/consultas", icon: CalendarDays },
   { title: "Mensagens", url: "/mensagens", icon: MessageSquare },
+  { title: "Prontuários", url: "/prontuarios", icon: Stethoscope },
   { title: "Usuários", url: "/usuarios", icon: Users },
   { title: "Pacientes", url: "/pacientes", icon: UserRound },
   { title: "Aniversários", url: "/aniversarios", icon: Cake },
-  { title: "Agenda", url: "/agenda", icon: CalendarDays },
 ];
 
 export function AppSidebar() {
@@ -38,19 +41,16 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
       <SidebarContent className="bg-sidebar">
-        <div className="flex items-center gap-2 px-4 py-5 border-b border-sidebar-border">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gold text-gold-foreground shadow-sm">
-            <Stethoscope className="h-5 w-5" />
+        <NavLink to="/home" className="flex items-center gap-2 px-4 py-5">
+          <div className="flex items-center gap-2 py-5 border-b border-sidebar-border">
+            <img src={logo} width={50} height={50} alt="Logo"   className="w-10 h-10 min-w-10 min-h-10 object-contain rounded-2xl" />
+            {!collapsed && (
+              <div className="flex flex-col leading-tight">
+                <span className="text-sidebar-foreground font-bold text-base">ISG Cabreira</span>
+              </div>
+            )}
           </div>
-          {!collapsed && (
-            <div className="flex flex-col leading-tight">
-              <span className="text-sidebar-foreground font-bold text-base">Portal ISG</span>
-              <span className="text-sidebar-foreground/60 text-[10px] uppercase tracking-wider">
-                Consultório
-              </span>
-            </div>
-          )}
-        </div>
+        </NavLink>
 
         <SidebarGroup>
           {!collapsed && (
@@ -73,7 +73,7 @@ export function AppSidebar() {
                           : "text-sidebar-foreground/80 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground"
                       }`}
                     >
-                      <NavLink to={item.url} className="flex items-center gap-3 px-3 py-2">
+                      <NavLink to={item.url} className={`flex items-center ${collapsed ? "justify-center" : "gap-3"} px-3 py-2`}>
                         <item.icon className="h-4 w-4 shrink-0" />
                         {!collapsed && <span className="font-medium text-sm">{item.title}</span>}
                       </NavLink>

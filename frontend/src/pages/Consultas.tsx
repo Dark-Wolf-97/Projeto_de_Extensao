@@ -12,10 +12,10 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ConsultaService, Consulta } from "@/services/ConsultaService";
-import { NovaAgendaModal } from "@/components/modals/NovaAgendaModal";
+import { NovaConsultaModal } from "@/components/modals/NovaConsultaModal";
 import { CalendarPlus } from "lucide-react";
 
-export default function Agenda() {
+export default function Consultas() {
   const [consultas, setConsultas] = useState<Consulta[]>([]);
   const [open, setOpen] = useState(false);
 
@@ -27,12 +27,12 @@ export default function Agenda() {
 
   return (
     <PageShell
-      title="Agenda"
-      subtitle="Todos os agendamentos"
+      title="Consultas"
+      subtitle="Todas as consultas"
       actions={
         <Button onClick={() => setOpen(true)} className="bg-primary hover:bg-primary/90 gap-2">
           <CalendarPlus className="h-4 w-4" />
-          Nova Agenda
+          Nova Consulta
         </Button>
       }
     >
@@ -52,7 +52,7 @@ export default function Agenda() {
               {consultas.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                    Nenhum agendamento
+                    Nenhuma consulta encontrada.
                   </TableCell>
                 </TableRow>
               ) : (
@@ -85,7 +85,7 @@ export default function Agenda() {
           </Table>
         </CardContent>
       </Card>
-      <NovaAgendaModal open={open} onOpenChange={setOpen} onSaved={carregar} />
+      <NovaConsultaModal open={open} onOpenChange={setOpen} onSaved={carregar} />
     </PageShell>
   );
 }

@@ -25,5 +25,6 @@ export const PacienteService = {
   criar: (paciente: Paciente) => http<void>("/pacientes", { method: "POST", json: paciente }),
   atualizar: (id: number | string, paciente: Paciente) =>
     http<void>(`/pacientes/${id}`, { method: "PUT", json: paciente }),
+  
   deletar: (id: number | string) => http<void>(`/pacientes/${id}`, { method: "DELETE" }),
 };

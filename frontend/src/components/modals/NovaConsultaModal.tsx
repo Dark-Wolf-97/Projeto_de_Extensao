@@ -21,7 +21,7 @@ interface Props {
   onSaved?: () => void;
 }
 
-export function NovaAgendaModal({ open, onOpenChange, onSaved }: Props) {
+export function NovaConsultaModal({ open, onOpenChange, onSaved }: Props) {
   const [pacientes, setPacientes] = useState<Paciente[]>([]);
   const [form, setForm] = useState<Consulta>({
     pacienteNome: "",
@@ -42,7 +42,7 @@ export function NovaAgendaModal({ open, onOpenChange, onSaved }: Props) {
     setSaving(true);
     try {
       await ConsultaService.criar(form);
-      toast.success("Agendamento criado com sucesso!");
+      toast.success("Consulta criado com sucesso!");
       onSaved?.();
       onOpenChange(false);
     } catch {
@@ -56,7 +56,7 @@ export function NovaAgendaModal({ open, onOpenChange, onSaved }: Props) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[520px]">
         <DialogHeader>
-          <DialogTitle className="text-primary">Novo Agendamento</DialogTitle>
+          <DialogTitle className="text-primary">Nova Consulta</DialogTitle>
           <DialogDescription>Preencha os dados para agendar uma consulta.</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="grid gap-4 py-2">

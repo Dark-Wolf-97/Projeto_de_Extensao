@@ -14,14 +14,14 @@ import { Badge } from "@/components/ui/badge";
 import { CalendarPlus, MessageSquare, FileText, Cake, Clock } from "lucide-react";
 import { ConsultaService, Consulta } from "@/services/ConsultaService";
 import { AniversarioService, Aniversariante } from "@/services/AniversarioService";
-import { NovaAgendaModal } from "@/components/modals/NovaAgendaModal";
+import { NovaConsultaModal } from "@/components/modals/NovaConsultaModal";
 import { ProntuarioModal } from "@/components/modals/ProntuarioModal";
 
 export default function Home() {
   const navigate = useNavigate();
   const [consultas, setConsultas] = useState<Consulta[]>([]);
   const [aniv, setAniv] = useState<Aniversariante[]>([]);
-  const [openAgenda, setOpenAgenda] = useState(false);
+  const [openConsultas, setOpenConsultas] = useState(false);
   const [openProntuario, setOpenProntuario] = useState(false);
 
   const carregar = async () => {
@@ -49,11 +49,11 @@ export default function Home() {
       {/* Botões de ação */}
       <div className="flex flex-wrap gap-3">
         <Button
-          onClick={() => setOpenAgenda(true)}
+          onClick={() => setOpenConsultas(true)}
           className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2 h-11 px-5 shadow-sm"
         >
           <CalendarPlus className="h-4 w-4" />
-          Nova Agenda
+          Nova Consulta
         </Button>
         <Button
           onClick={() => navigate("/mensagens")}
@@ -77,7 +77,7 @@ export default function Home() {
           <CardHeader className="bg-gradient-to-r from-primary to-accent py-4">
             <CardTitle className="text-primary-foreground flex items-center gap-2 text-base">
               <Clock className="h-5 w-5" />
-              Agenda do Dia
+              Consultas do Dia
               <Badge className="ml-auto bg-gold text-gold-foreground hover:bg-gold">
                 {consultas.length}
               </Badge>
@@ -97,7 +97,7 @@ export default function Home() {
                 {consultas.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
-                      Nenhum agendamento para hoje
+                      Nenhum Consulta para hoje
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -173,7 +173,7 @@ export default function Home() {
         </Card>
       </div>
 
-      <NovaAgendaModal open={openAgenda} onOpenChange={setOpenAgenda} onSaved={carregar} />
+      <NovaConsultaModal open={openConsultas} onOpenChange={setOpenConsultas} onSaved={carregar} />
       <ProntuarioModal open={openProntuario} onOpenChange={setOpenProntuario} />
     </div>
   );

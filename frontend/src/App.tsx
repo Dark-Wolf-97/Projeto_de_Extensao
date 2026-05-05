@@ -12,8 +12,9 @@ import Mensagens from "./pages/Mensagens";
 import Usuarios from "./pages/Usuarios";
 import Pacientes from "./pages/Pacientes";
 import Aniversarios from "./pages/Aniversarios";
-import Agenda from "./pages/Agenda";
+import Consultas from "./pages/Consultas";
 import NotFound from "./pages/NotFound";
+import Prontuarios from "./pages/Prontuarios";
 
 const queryClient = new QueryClient();
 
@@ -33,7 +34,8 @@ const App = () => (
               <Route path="/usuarios" element={<Usuarios />} />
               <Route path="/pacientes" element={<Pacientes />} />
               <Route path="/aniversarios" element={<Aniversarios />} />
-              <Route path="/agenda" element={<Agenda />} />
+              <Route path="/consultas" element={<Consultas />} />
+              <Route path="/prontuarios" element={<Prontuarios />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>

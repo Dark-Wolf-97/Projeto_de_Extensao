@@ -32,7 +32,7 @@ export function AppHeader() {
         <div className="hidden md:flex flex-col leading-tight">
           <h1 className="text-lg font-bold text-primary">Portal ISG</h1>
           <span className="text-[11px] text-muted-foreground -mt-0.5">
-            Sistema de Consultório Médico
+            Instituto de Saúde de Guarapuava.
           </span>
         </div>
       </div>
