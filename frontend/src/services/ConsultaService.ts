@@ -20,7 +20,8 @@ const mockConsultas: Consulta[] = [
 ];
 
 export const ConsultaService = {
-  listar: () => safeRequest(() => http<Consulta[]>("/consultas"), mockConsultas),
+  // listar: () => safeRequest(() => http<Consulta[]>("/consultas"), mockConsultas),
+  listar: () => Promise.resolve(mockConsultas),
   criar: (consulta: Consulta) => http<void>("/consultas", { method: "POST", json: consulta }),
   atualizar: (id: number | string, consulta: Consulta) =>
     http<void>(`/consultas/${id}`, { method: "PUT", json: consulta }),
