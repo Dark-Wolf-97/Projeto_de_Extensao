@@ -1,4 +1,4 @@
-import { http, safeRequest } from "./http";
+import { http } from "./http";
 
 export interface Mensagem {
   id?: number | string;

@@ -1,32 +1,62 @@
-import { Controller, Get, Post, Put, Body, Delete, Param, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Body,
+  Delete,
+  Param,
+  Query,
+} from '@nestjs/common';
+
 import { PacientesService } from './pacientes.service';
+
+import { CreatePacienteDto } from './dto/create-paciente.dto';
+import { UpdatePacienteDto } from './dto/update-paciente.dto';
 
 @Controller('pacientes')
 export class PacientesController {
-    constructor(private readonly pacientesService: PacientesService) {}
+  constructor(
+    private readonly pacientesService: PacientesService,
+  ) {}
 
-    @Get()
-    listar() {
-        return this.pacientesService.listar();
-    }
+  @Get()
+  listar() {
+    return this.pacientesService.listar();
+  }
 
-    @Post()
-    criar(@Body() paciente) {
-        return this.pacientesService.criar(paciente);
-    }
+  @Get('buscar')
+  buscar(@Query('nome') nome: string) {
+    return this.pacientesService.buscar(nome);
+  }
 
-    @Put(':id')
-    atualizar(@Param('id') id: string, @Body() paciente: any) {
-        return this.pacientesService.atualizar(Number(id), paciente);
-    }
+  @Post()
+  criar(
+    @Body() paciente: CreatePacienteDto,
+  ) {
+    return this.pacientesService.criar(paciente);
+  }
 
-    @Delete(':id')
-    remover(@Param('id') id: string) {
-        return this.pacientesService.remover(Number(id));
-    }
+  @Put(':id')
+  atualizar(
+    @Param('id') id: string,
+    @Body() paciente: UpdatePacienteDto,
+  ) {
+    return this.pacientesService.atualizar(
+      Number(id),
+      paciente,
+    );
+  }
 
-    @Get('buscar')
-    buscar(@Query('nome') nome: string) {
-        return this.pacientesService.buscar(nome);
-    }
+  @Delete(':id')
+  remover(@Param('id') id: string) {
+    return this.pacientesService.remover(
+      Number(id),
+    );
+  }
+
+  @Get("aniversarios")
+  listarAniversariosMes() {
+    return this.pacientesService.listarAniversariosMes();
+  }
 }

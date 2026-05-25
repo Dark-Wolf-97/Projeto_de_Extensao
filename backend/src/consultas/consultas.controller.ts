@@ -1,27 +1,29 @@
-import { Controller, Get, Post, Put, Delete, Body, Param } from '@nestjs/common';
+import { Body, Controller, Get, Post, Put, Delete, Param } from '@nestjs/common';
 import { ConsultasService } from './consultas.service';
+import { CreateConsultaDto } from './dto/create-consulta.dto';
+import { UpdateConsultaDto } from './dto/update-consulta.dto';
 
 @Controller('consultas')
 export class ConsultasController {
-  constructor(private readonly consultasService: ConsultasService) {}
+  constructor(private readonly service: ConsultasService) {}
 
   @Get()
-  listar() {
-    return this.consultasService.listar();
+  findAll() {
+    return this.service.findAll();
   }
 
   @Post()
-  criar(@Body() consulta) {
-    return this.consultasService.criar(consulta);
+  create(@Body() dto: CreateConsultaDto) {
+    return this.service.create(dto);
   }
 
   @Put(':id')
-  atualizar(@Param('id') id: string, @Body() consulta) {
-    return this.consultasService.atualizar(Number(id), consulta);
+  update(@Param('id') id: string, @Body() dto: UpdateConsultaDto) {
+    return this.service.update(Number(id), dto);
   }
 
   @Delete(':id')
-  deletar(@Param('id') id: string) {
-    return this.consultasService.deletar(Number(id));
+  remove(@Param('id') id: string) {
+    return this.service.remove(Number(id));
   }
 }

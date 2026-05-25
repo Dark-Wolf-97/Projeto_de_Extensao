@@ -1,44 +1,63 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+import { CreateConsultaDto } from './dto/create-consulta.dto';
+import { UpdateConsultaDto } from './dto/update-consulta.dto';
 
 @Injectable()
 export class ConsultasService {
-  private consultas: any[] = [];
+  constructor(private prisma: PrismaService) {}
 
-  listar() {
-    return this.consultas;
+  findAll() {
+    return this.prisma.consulta
+      .findMany({
+        include: {
+          paciente: true,
+        },
+      })
+      .then((consultas) =>
+        consultas.map((c) => ({
+          id: c.id,
+          data: c.data,
+          hora: c.hora,
+          medico: c.medico,
+          status: c.status,
+          observacoes: c.observacoes,
+          pacienteId: c.pacienteId,
+          pacienteNome: c.paciente?.nome,
+        })),
+      );
   }
 
-  criar(consulta) {
-    const conflito = this.consultas.find(
-      (c) => c.data === consulta.data && c.hora === consulta.hora
-    );
-
-    if (conflito) {
-      throw new BadRequestException('Horário já ocupado');
-    }
-
-    this.consultas.push(consulta);
-    return consulta;
+  create(dto: CreateConsultaDto) {
+    return this.prisma.consulta.create({
+      data: {
+        data: new Date(dto.data),
+        hora: dto.hora,
+        medico: dto.medico,
+        observacoes: dto.observacoes,
+        status: dto.status ?? 'Agendada',
+        pacienteId: Number(dto.pacienteId),
+      },
+    });
   }
 
-  atualizar(id: number, novaConsulta) {
-    const conflito = this.consultas.find(
-      (c, index) =>
-        c.data === novaConsulta.data &&
-        c.hora === novaConsulta.hora &&
-        index !== id
-    );
-
-    if (conflito) {
-      throw new BadRequestException('Horário já ocupado');
-    }
-
-    this.consultas[id] = novaConsulta;
-    return novaConsulta;
+  update(id: number, dto: UpdateConsultaDto) {
+    return this.prisma.consulta.update({
+      where: { id },
+      data: {
+        ...(dto.data && { data: new Date(dto.data) }),
+        ...(dto.hora && { hora: dto.hora }),
+        ...(dto.medico !== undefined && { medico: dto.medico }),
+        ...(dto.observacoes !== undefined && { observacoes: dto.observacoes }),
+        ...(dto.status && { status: dto.status }),
+        ...(dto.pacienteId && { pacienteId: Number(dto.pacienteId) }),
+      },
+    });
   }
 
-  deletar(id: number) {
-    this.consultas.splice(id, 1);
-    return { message: 'Consulta removida' };
+  remove(id: number) {
+    return this.prisma.consulta.delete({
+      where: { id },
+    });
   }
 }

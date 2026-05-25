@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
+import { AuthService } from "@/services/authService";
 import { useAuth } from "@/context/AuthContext";
 import { Stethoscope } from "lucide-react";
 import logo from "../assets/images/logo-isg.png";
@@ -12,14 +13,22 @@ export default function Login() {
   const navigate = useNavigate();
   const { login } = useAuth();
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
+const handleLogin = async (e: React.FormEvent) => {
+  e.preventDefault();
 
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    // sem lógica de auth — entra direto
-    login();
+  try {
+    const response = await AuthService.login(email, password);
+
+    login(response.user, response.token);
+
     navigate("/home");
-  };
+  } catch (err) {
+    alert("Login inválido");
+    console.error(err);
+  }
+};
 
   return (
     <div
@@ -46,7 +55,13 @@ export default function Login() {
             </div>
             <div className="grid gap-2">
               <Label htmlFor="senha">Senha</Label>
-              <Input id="senha" type="password" placeholder="••••••••" />
+              <Input
+                id="senha"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+              />
             </div>
             <Button
               type="submit"

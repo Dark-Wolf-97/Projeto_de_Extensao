@@ -1,10 +1,11 @@
+import PrivateRoute from "@/routes/PrivateRoute";
+import AdminRoute from "@/routes/AdminRoute";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { AuthProvider } from "@/context/AuthContext";
 import AppLayout from "@/components/layout/AppLayout";
 import Login from "./pages/Login";
 import Home from "./pages/Home";
@@ -24,26 +25,80 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <AuthProvider>
-          <Routes>
-            <Route path="/" element={<Navigate to="/login" replace />} />
-            <Route path="/login" element={<Login />} />
-            <Route element={<AppLayout />}>
-              <Route path="/home" element={<Home />} />
-              <Route path="/mensagens" element={<Mensagens />} />
-              <Route path="/usuarios" element={<Usuarios />} />
-              <Route path="/pacientes" element={<Pacientes />} />
-              <Route path="/aniversarios" element={<Aniversarios />} />
-              <Route path="/consultas" element={<Consultas />} />
-              <Route path="/prontuarios" element={<Prontuarios />} />
-            </Route>
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </AuthProvider>
+        <Routes>
+          <Route path="/" element={<Navigate to="/login" replace />} />
+          <Route path="/login" element={<Login />} />
+
+          <Route element={<AppLayout />}>
+            <Route
+              path="/home"
+              element={
+                <PrivateRoute>
+                  <Home />
+                </PrivateRoute>
+              }
+            />
+
+            <Route
+              path="/mensagens"
+              element={
+                <PrivateRoute>
+                  <Mensagens />
+                </PrivateRoute>
+              }
+            />
+
+            <Route
+              path="/usuarios"
+              element={
+                <AdminRoute>
+                  <Usuarios />
+                </AdminRoute>
+              }
+            />
+
+            <Route
+              path="/pacientes"
+              element={
+                <PrivateRoute>
+                  <Pacientes />
+                </PrivateRoute>
+              }
+            />
+
+            <Route
+              path="/aniversarios"
+              element={
+                <PrivateRoute>
+                  <Aniversarios />
+                </PrivateRoute>
+              }
+            />
+
+            <Route
+              path="/consultas"
+              element={
+                <PrivateRoute>
+                  <Consultas />
+                </PrivateRoute>
+              }
+            />
+
+            <Route
+              path="/prontuarios"
+              element={
+                <PrivateRoute>
+                  <Prontuarios />
+                </PrivateRoute>
+              }
+            />
+          </Route>
+
+          <Route path="*" element={<NotFound />} />
+        </Routes>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
 );
-
 
 export default App;

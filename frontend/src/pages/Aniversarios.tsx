@@ -19,8 +19,18 @@ export default function Aniversarios() {
     AniversarioService.listar().then(setLista);
   }, []);
 
-  const fmt = (iso: string) =>
-    new Date(iso + "T00:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "long" });
+  const fmt = (iso?: string) => {
+    if (!iso) return "";
+
+    const date = new Date(iso);
+
+    if (isNaN(date.getTime())) return "";
+
+    return date.toLocaleDateString("pt-BR", {
+      day: "2-digit",
+      month: "long",
+    });
+  };
 
   return (
     <PageShell title="Aniversários" subtitle="Aniversariantes cadastrados">

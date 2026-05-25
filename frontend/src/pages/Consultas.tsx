@@ -13,11 +13,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ConsultaService, Consulta } from "@/services/ConsultaService";
 import { NovaConsultaModal } from "@/components/modals/NovaConsultaModal";
-import { CalendarPlus } from "lucide-react";
+import { CalendarPlus, Edit, Trash2 } from "lucide-react";
 
 export default function Consultas() {
   const [consultas, setConsultas] = useState<Consulta[]>([]);
   const [open, setOpen] = useState(false);
+  const [consultaSelecionada, setConsultaSelecionada] = useState<Consulta | null>(null);
 
   const carregar = async () => setConsultas(await ConsultaService.listar());
 
@@ -25,12 +26,30 @@ export default function Consultas() {
     carregar();
   }, []);
 
+  const handleEditar = (c: Consulta) => {
+    setConsultaSelecionada(c);
+    setOpen(true);
+  };
+
+  const handleDeletar = async (id: number | string) => {
+    if (!confirm("Deseja realmente excluir esta consulta?")) return;
+
+    await ConsultaService.deletar(id);
+    carregar();
+  };
+
   return (
     <PageShell
       title="Consultas"
       subtitle="Todas as consultas"
       actions={
-        <Button onClick={() => setOpen(true)} className="bg-primary hover:bg-primary/90 gap-2">
+        <Button
+          onClick={() => {
+            setConsultaSelecionada(null);
+            setOpen(true);
+          }}
+          className="bg-primary hover:bg-primary/90 gap-2"
+        >
           <CalendarPlus className="h-4 w-4" />
           Nova Consulta
         </Button>
@@ -46,46 +65,55 @@ export default function Consultas() {
                 <TableHead>Paciente</TableHead>
                 <TableHead>Médico</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Ações</TableHead>
               </TableRow>
             </TableHeader>
+
             <TableBody>
-              {consultas.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                    Nenhuma consulta encontrada.
+              {consultas.map((c) => (
+                <TableRow key={c.id}>
+                  <TableCell>
+                    {new Date(c.data).toLocaleDateString("pt-BR")}
+                  </TableCell>
+                  <TableCell>{c.hora}</TableCell>
+                  <TableCell>{c.pacienteNome}</TableCell>
+                  <TableCell>{c.medico}</TableCell>
+
+                  <TableCell>
+                    <Badge variant="outline">{c.status}</Badge>
+                  </TableCell>
+
+                  <TableCell className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleEditar(c)}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleDeletar(c.id!)}
+                      className="text-red-500"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </TableCell>
                 </TableRow>
-              ) : (
-                consultas.map((c) => (
-                  <TableRow key={c.id}>
-                    <TableCell className="text-primary font-semibold">
-                      {new Date(c.data + "T00:00:00").toLocaleDateString("pt-BR")}
-                    </TableCell>
-                    <TableCell className="font-mono">{c.hora}</TableCell>
-                    <TableCell className="font-medium">{c.pacienteNome}</TableCell>
-                    <TableCell className="text-muted-foreground">{c.medico}</TableCell>
-                    <TableCell>
-                      <Badge
-                        variant="outline"
-                        className={
-                          c.status === "Confirmada"
-                            ? "border-accent text-accent"
-                            : c.status === "Cancelada"
-                              ? "border-destructive text-destructive"
-                              : "border-gold text-gold"
-                        }
-                      >
-                        {c.status}
-                      </Badge>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
+              ))}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
-      <NovaConsultaModal open={open} onOpenChange={setOpen} onSaved={carregar} />
+
+      <NovaConsultaModal
+        open={open}
+        onOpenChange={setOpen}
+        onSaved={carregar}
+        consulta={consultaSelecionada}
+      />
     </PageShell>
   );
 }

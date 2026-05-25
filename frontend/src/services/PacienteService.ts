@@ -1,4 +1,4 @@
-import { http, safeRequest } from "./http";
+import { http } from "./http";
 
 export interface Paciente {
   id?: number | string;
@@ -8,46 +8,38 @@ export interface Paciente {
   email?: string;
   dataNascimento?: string;
 }
-const USE_MOCK = false;
-const mockPacientes: Paciente[] = [
-  { id: 1, nome: "Ana Souza", cpf: "123.456.789-00", telefone: "(11) 99999-1111", email: "ana@email.com", dataNascimento: "1990-05-12" },
-  { id: 2, nome: "Bruno Lima", cpf: "987.654.321-00", telefone: "(11) 98888-2222", email: "bruno@email.com", dataNascimento: "1985-09-03" },
-  { id: 3, nome: "Carla Mendes", cpf: "111.222.333-44", telefone: "(11) 97777-3333", email: "carla@email.com", dataNascimento: "1992-12-22" },
-];
 
 export const PacienteService = {
-  listar: () =>
-    USE_MOCK
-      ? Promise.resolve(mockPacientes)
-      : safeRequest(() => http<Paciente[]>("/pacientes"), mockPacientes),
+  listar: async (): Promise<Paciente[]> => {
+    return http<Paciente[]>("/pacientes");
+  },
 
-  buscar: (nome: string) =>
-    USE_MOCK
-      ? Promise.resolve(
-          mockPacientes.filter((p) =>
-            p.nome.toLowerCase().includes(nome.toLowerCase())
-          )
-        )
-      : safeRequest(
-          () =>
-            http<Paciente[]>(
-              `/pacientes/buscar?nome=${encodeURIComponent(nome)}`
-            ),
-          mockPacientes
-        ),
+  buscar: async (nome: string): Promise<Paciente[]> => {
+    return http<Paciente[]>(
+      `/pacientes/buscar?nome=${encodeURIComponent(nome)}`
+    );
+  },
 
-  criar: (paciente: Paciente) =>
-    USE_MOCK
-      ? Promise.resolve()
-      : http<void>("/pacientes", { method: "POST", json: paciente }),
+  criar: async (paciente: Paciente): Promise<void> => {
+    await http<void>("/pacientes", {
+      method: "POST",
+      json: paciente,
+    });
+  },
 
-  atualizar: (id: number | string, paciente: Paciente) =>
-    USE_MOCK
-      ? Promise.resolve()
-      : http<void>(`/pacientes/${id}`, { method: "PUT", json: paciente }),
+  atualizar: async (
+    id: number | string,
+    paciente: Paciente
+  ): Promise<void> => {
+    await http<void>(`/pacientes/${id}`, {
+      method: "PUT",
+      json: paciente,
+    });
+  },
 
-  deletar: (id: number | string) =>
-    USE_MOCK
-      ? Promise.resolve()
-      : http<void>(`/pacientes/${id}`, { method: "DELETE" }),
+  deletar: async (id: number | string): Promise<void> => {
+    await http<void>(`/pacientes/${id}`, {
+      method: "DELETE",
+    });
+  },
 };

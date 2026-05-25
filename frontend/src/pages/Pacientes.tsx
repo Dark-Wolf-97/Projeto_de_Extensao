@@ -104,7 +104,9 @@ export default function Pacientes() {
                     <TableCell className="text-muted-foreground">{p.email}</TableCell>
                     <TableCell>
                       {p.dataNascimento
-                        ? new Date(p.dataNascimento + "T00:00:00").toLocaleDateString("pt-BR")
+                        ? new Date(
+                            p.dataNascimento.split("T")[0] + "T12:00:00"
+                          ).toLocaleDateString("pt-BR")
                         : "—"}
                     </TableCell>
                     <TableCell>
