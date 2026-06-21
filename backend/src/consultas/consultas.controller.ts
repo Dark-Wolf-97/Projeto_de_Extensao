@@ -56,6 +56,18 @@ export class ConsultasController {
     return this.service.realizar(Number(id), req.user.id);
   }
 
+  @Patch(':id/confirmar')
+  @Roles(Role.ADMIN, Role.SECRETARIA)
+  confirmar(@Param('id') id: string) {
+    return this.service.confirmar(Number(id));
+  }
+
+  @Patch(':id/cancelar')
+  @Roles(Role.ADMIN, Role.SECRETARIA)
+  cancelar(@Param('id') id: string) {
+    return this.service.cancelar(Number(id));
+  }
+
   @Delete(':id')
   @Roles(Role.ADMIN, Role.SECRETARIA)
   remove(@Param('id') id: string) {

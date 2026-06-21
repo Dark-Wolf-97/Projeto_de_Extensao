@@ -11,7 +11,7 @@ import { CreateConsultaDto } from './dto/create-consulta.dto';
 import { UpdateConsultaDto } from './dto/update-consulta.dto';
 
 const INCLUDE_CONSULTA = {
-  paciente: { select: { id: true, nome: true, cpf: true } },
+  paciente: { select: { id: true, nome: true, cpf: true, telefone: true } },
   medico: { select: { id: true, nome: true, crm: true, especialidade: true } },
   prontuario: { select: { id: true } },
 };
@@ -139,6 +139,24 @@ export class ConsultasService {
     return this.prisma.consulta.update({
       where: { id },
       data: { status: StatusConsulta.REALIZADA },
+      include: INCLUDE_CONSULTA,
+    });
+  }
+
+  async confirmar(id: number) {
+    await this.findOne(id);
+    return this.prisma.consulta.update({
+      where: { id },
+      data: { status: StatusConsulta.CONFIRMADA },
+      include: INCLUDE_CONSULTA,
+    });
+  }
+
+  async cancelar(id: number) {
+    await this.findOne(id);
+    return this.prisma.consulta.update({
+      where: { id },
+      data: { status: StatusConsulta.CANCELADA },
       include: INCLUDE_CONSULTA,
     });
   }
