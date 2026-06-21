@@ -1,45 +1,44 @@
 import { http } from "./http";
 
 export interface Paciente {
-  id?: number | string;
+  id?: number;
   nome: string;
-  cpf?: string;
-  telefone?: string;
-  email?: string;
+  cpf: string;
+  telefone: string;
   dataNascimento?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface ConsultaDoPaciente {
+  id: number;
+  data: string;
+  hora: string;
+  status: string;
+  observacoes?: string;
+  medico: { id: number; nome: string; especialidade?: string };
+  prontuario: { id: number } | null;
+}
+
+export interface PacientePerfil extends Paciente {
+  consultas: ConsultaDoPaciente[];
 }
 
 export const PacienteService = {
-  listar: async (): Promise<Paciente[]> => {
-    return http<Paciente[]>("/pacientes");
-  },
+  listar: (): Promise<Paciente[]> => http<Paciente[]>("/pacientes"),
 
-  buscar: async (nome: string): Promise<Paciente[]> => {
-    return http<Paciente[]>(
-      `/pacientes/buscar?nome=${encodeURIComponent(nome)}`
-    );
-  },
+  buscar: (nome: string): Promise<Paciente[]> =>
+    http<Paciente[]>(`/pacientes/buscar?nome=${encodeURIComponent(nome)}`),
 
-  criar: async (paciente: Paciente): Promise<void> => {
-    await http<void>("/pacientes", {
-      method: "POST",
-      json: paciente,
-    });
-  },
+  buscarPerfil: (id: number): Promise<PacientePerfil> =>
+    http<PacientePerfil>(`/pacientes/${id}`),
 
-  atualizar: async (
-    id: number | string,
-    paciente: Paciente
-  ): Promise<void> => {
-    await http<void>(`/pacientes/${id}`, {
-      method: "PUT",
-      json: paciente,
-    });
-  },
+  criar: (paciente: Omit<Paciente, "id" | "createdAt" | "updatedAt">): Promise<Paciente> =>
+    http<Paciente>("/pacientes", { method: "POST", json: paciente }),
 
-  deletar: async (id: number | string): Promise<void> => {
-    await http<void>(`/pacientes/${id}`, {
-      method: "DELETE",
-    });
-  },
+  atualizar: (id: number, paciente: Partial<Omit<Paciente, "id" | "createdAt" | "updatedAt">>): Promise<Paciente> =>
+    http<Paciente>(`/pacientes/${id}`, { method: "PUT", json: paciente }),
+
+  deletar: (id: number): Promise<void> =>
+    http<void>(`/pacientes/${id}`, { method: "DELETE" }),
 };

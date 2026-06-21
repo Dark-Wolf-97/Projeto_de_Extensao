@@ -1,41 +1,49 @@
 import { http } from "./http";
 
-export type Role = "ADMIN" | "USER";
+export type Role = "ADMIN" | "SECRETARIA" | "MEDICO";
 
 export interface Usuario {
-  id?: number | string;
-  name?: string;
+  id?: number;
+  nome: string;
   email: string;
-  password?: string;
+  senha?: string;
   role: Role;
-  active?: boolean;
+  crm?: string;
+  especialidade?: string;
+  telefone?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface MedicoResumo {
+  id: number;
+  nome: string;
+  crm?: string;
+  especialidade?: string;
 }
 
 export const UsuarioService = {
-  listar: async (): Promise<Usuario[]> => {
-    return http<Usuario[]>("/users");
-  },
+  listar: (): Promise<Usuario[]> => http<Usuario[]>("/users"),
 
-  criar: async (usuario: Usuario): Promise<void> => {
-    await http<void>("/users", {
-      method: "POST",
-      json: usuario,
-    });
-  },
+  listarMedicos: (): Promise<MedicoResumo[]> => http<MedicoResumo[]>("/users/medicos"),
 
-  atualizar: async (
-    id: number | string,
-    usuario: Partial<Usuario>
-  ): Promise<void> => {
-    await http<void>(`/users/${id}`, {
-      method: "PUT",
-      json: usuario,
-    });
-  },
+  buscarPorNome: (nome: string): Promise<Usuario[]> =>
+    http<Usuario[]>(`/users/buscar?nome=${encodeURIComponent(nome)}`),
 
-  deletar: async (id: number | string): Promise<void> => {
-    await http<void>(`/users/${id}`, {
-      method: "DELETE",
-    });
-  },
+  buscarPorId: (id: number): Promise<Usuario> => http<Usuario>(`/users/${id}`),
+
+  criar: (usuario: Omit<Usuario, "id" | "createdAt" | "updatedAt">): Promise<Usuario> =>
+    http<Usuario>("/users", { method: "POST", json: usuario }),
+
+  atualizar: (id: number, usuario: Partial<Omit<Usuario, "id" | "createdAt" | "updatedAt">>): Promise<Usuario> =>
+    http<Usuario>(`/users/${id}`, { method: "PUT", json: usuario }),
+
+  deletar: (id: number): Promise<void> =>
+    http<void>(`/users/${id}`, { method: "DELETE" }),
+
+  me: (): Promise<Usuario> => http<Usuario>("/users/me"),
+
+  atualizarMe: (
+    data: Partial<Omit<Usuario, "id" | "role" | "createdAt" | "updatedAt">>
+  ): Promise<Usuario> => http<Usuario>("/users/me", { method: "PUT", json: data }),
 };

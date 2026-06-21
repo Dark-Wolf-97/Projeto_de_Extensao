@@ -7,18 +7,20 @@ import {
   Delete,
   Param,
   Query,
+  UseGuards,
 } from '@nestjs/common';
-
+import { Role } from '@prisma/client';
 import { PacientesService } from './pacientes.service';
-
 import { CreatePacienteDto } from './dto/create-paciente.dto';
 import { UpdatePacienteDto } from './dto/update-paciente.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 
 @Controller('pacientes')
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class PacientesController {
-  constructor(
-    private readonly pacientesService: PacientesService,
-  ) {}
+  constructor(private readonly pacientesService: PacientesService) {}
 
   @Get()
   listar() {
@@ -30,33 +32,31 @@ export class PacientesController {
     return this.pacientesService.buscar(nome);
   }
 
+  @Get('aniversarios')
+  listarAniversariosMes() {
+    return this.pacientesService.listarAniversariosMes();
+  }
+
+  @Get(':id')
+  findPerfil(@Param('id') id: string) {
+    return this.pacientesService.findPerfil(Number(id));
+  }
+
   @Post()
-  criar(
-    @Body() paciente: CreatePacienteDto,
-  ) {
-    return this.pacientesService.criar(paciente);
+  @Roles(Role.ADMIN, Role.SECRETARIA)
+  criar(@Body() dto: CreatePacienteDto) {
+    return this.pacientesService.criar(dto);
   }
 
   @Put(':id')
-  atualizar(
-    @Param('id') id: string,
-    @Body() paciente: UpdatePacienteDto,
-  ) {
-    return this.pacientesService.atualizar(
-      Number(id),
-      paciente,
-    );
+  @Roles(Role.ADMIN, Role.SECRETARIA)
+  atualizar(@Param('id') id: string, @Body() dto: UpdatePacienteDto) {
+    return this.pacientesService.atualizar(Number(id), dto);
   }
 
   @Delete(':id')
+  @Roles(Role.ADMIN, Role.SECRETARIA)
   remover(@Param('id') id: string) {
-    return this.pacientesService.remover(
-      Number(id),
-    );
-  }
-
-  @Get("aniversarios")
-  listarAniversariosMes() {
-    return this.pacientesService.listarAniversariosMes();
+    return this.pacientesService.remover(Number(id));
   }
 }

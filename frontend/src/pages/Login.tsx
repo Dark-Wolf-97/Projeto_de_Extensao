@@ -1,39 +1,60 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card } from "@/components/ui/card";
-import { AuthService } from "@/services/authService";
-import { useAuth } from "@/context/AuthContext";
-import { Stethoscope } from "lucide-react";
-import logo from "../assets/images/logo-isg.png";
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
+import { AuthService } from '@/services/AuthService';
+import { useAuth } from '@/context/AuthContext';
+import logo from '../assets/images/logo-isg.png';
+
+const STORAGE_KEY = 'login_email_salvo';
 
 export default function Login() {
   const navigate = useNavigate();
   const { login } = useAuth();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState('');
+  const [senha, setSenha] = useState('');
+  const [lembrarMe, setLembrarMe] = useState(false);
+  const [erro, setErro] = useState('');
+  const [loading, setLoading] = useState(false);
 
-const handleLogin = async (e: React.FormEvent) => {
-  e.preventDefault();
+  useEffect(() => {
+    const emailSalvo = localStorage.getItem(STORAGE_KEY);
+    if (emailSalvo) {
+      setEmail(emailSalvo);
+      setLembrarMe(true);
+    }
+  }, []);
 
-  try {
-    const response = await AuthService.login(email, password);
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErro('');
+    setLoading(true);
 
-    login(response.user, response.token);
+    try {
+      const response = await AuthService.login(email, senha);
 
-    navigate("/home");
-  } catch (err) {
-    alert("Login inválido");
-    console.error(err);
-  }
-};
+      if (lembrarMe) {
+        localStorage.setItem(STORAGE_KEY, email);
+      } else {
+        localStorage.removeItem(STORAGE_KEY);
+      }
+
+      login(response.user, response.token);
+      navigate('/home');
+    } catch {
+      setErro('E-mail ou senha inválidos');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div
       className="min-h-screen flex items-center justify-center p-4"
-      style={{ background: "var(--gradient-brand)" }}
+      style={{ background: 'var(--gradient-brand)' }}
     >
       <div className="w-full max-w-md">
         <div className="flex flex-col items-center gap-3 mb-6">
@@ -42,36 +63,54 @@ const handleLogin = async (e: React.FormEvent) => {
         </div>
 
         <Card className="p-8 shadow-elevated border-0">
-          <form onSubmit={handleLogin} className="grid gap-5">
+          <form onSubmit={handleLogin} autoComplete="on" className="grid gap-5">
             <div className="grid gap-2">
               <Label htmlFor="email">E-mail</Label>
               <Input
                 id="email"
                 type="email"
+                autoComplete="email"
                 placeholder="seu@email.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                required
               />
             </div>
+
             <div className="grid gap-2">
               <Label htmlFor="senha">Senha</Label>
               <Input
                 id="senha"
                 type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
+                autoComplete="current-password"
+                value={senha}
+                onChange={(e) => setSenha(e.target.value)}
+                required
               />
             </div>
+
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="lembrarMe"
+                checked={lembrarMe}
+                onCheckedChange={(v) => setLembrarMe(v === true)}
+              />
+              <Label htmlFor="lembrarMe" className="text-sm font-normal cursor-pointer">
+                Manter-me conectado
+              </Label>
+            </div>
+
+            {erro && (
+              <p className="text-sm text-destructive text-center">{erro}</p>
+            )}
+
             <Button
               type="submit"
+              disabled={loading}
               className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold h-11"
             >
-              Entrar
+              {loading ? 'Entrando...' : 'Entrar'}
             </Button>
-            <a href="#" className="text-center text-sm text-accent hover:underline">
-              Esqueci minha senha
-            </a>
           </form>
         </Card>
 

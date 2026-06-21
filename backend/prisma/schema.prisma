@@ -4,46 +4,84 @@ generator client {
 
 datasource db {
   provider = "mysql"
-  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum Role {
+  ADMIN
+  SECRETARIA
+  MEDICO
+}
+
+enum StatusConsulta {
+  AGENDADA
+  CONFIRMADA
+  REALIZADA
+  CANCELADA
+}
+
+// ─── Models ───────────────────────────────────────────────────────────────────
+
+model User {
+  id            Int      @id @default(autoincrement())
+  nome          String   @db.VarChar(100)
+  email         String   @unique @db.VarChar(150)
+  senha         String   @db.VarChar(255)
+  role          Role     @default(SECRETARIA)
+  crm           String?  @unique @db.VarChar(20)
+  especialidade String?  @db.VarChar(100)
+  telefone      String?  @db.VarChar(20)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  consultas Consulta[]
+
+  @@map("usuarios")
 }
 
 model Paciente {
   id             Int       @id @default(autoincrement())
-  nome           String
-  cpf            String
-  telefone       String
-  email          String?
+  nome           String    @db.VarChar(100)
+  cpf            String    @unique @db.VarChar(14)
+  telefone       String    @db.VarChar(20)
   dataNascimento DateTime?
   createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   consultas Consulta[]
+
+  @@map("pacientes")
 }
 
 model Consulta {
-  id           Int      @id @default(autoincrement())
-  pacienteId   Int
-  paciente     Paciente @relation(fields: [pacienteId], references: [id])
+  id          Int            @id @default(autoincrement())
+  pacienteId  Int
+  paciente    Paciente       @relation(fields: [pacienteId], references: [id])
+  medicoId    Int
+  medico      User           @relation(fields: [medicoId], references: [id])
+  data        DateTime
+  hora        String         @db.VarChar(5)
+  status      StatusConsulta @default(AGENDADA)
+  observacoes String?        @db.Text
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
 
-  data         DateTime
-  hora         String
-  medico       String?
-  observacoes  String?
-  status       String   @default("Agendada")
+  prontuario Prontuario?
 
-  createdAt    DateTime @default(now())
+  @@map("consultas")
 }
 
-model User {
-  id        Int      @id @default(autoincrement())
-  name      String?
-  email     String   @unique
-  password  String
-  role      Role     @default(USER)
-  active    Boolean  @default(true)
-  createdAt DateTime @default(now())
-}
+model Prontuario {
+  id          Int      @id @default(autoincrement())
+  consultaId  Int      @unique
+  consulta    Consulta @relation(fields: [consultaId], references: [id])
+  anamnese    String?  @db.Text
+  diagnostico String?  @db.Text
+  prescricao  String?  @db.Text
+  observacoes String?  @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-enum Role {
-  ADMIN
-  USER
+  @@map("prontuarios")
 }

@@ -1,5 +1,6 @@
 import { NavLink, useLocation } from "react-router-dom";
 import logo from "../../../src/assets/images/logo-isg.png";
+import { useAuth } from "@/context/AuthContext";
 
 import {
   Sidebar,
@@ -14,28 +15,46 @@ import {
 } from "@/components/ui/sidebar";
 import {
   Home,
-  MessageSquare,
   Users,
   UserRound,
   Cake,
   CalendarDays,
-  Stethoscope,
+  FileText,
 } from "lucide-react";
 
-const items = [
+const ADMIN_ITEMS = [
   { title: "Home", url: "/home", icon: Home },
   { title: "Consultas", url: "/consultas", icon: CalendarDays },
-  { title: "Mensagens", url: "/mensagens", icon: MessageSquare },
-  { title: "Prontuários", url: "/prontuarios", icon: Stethoscope },
   { title: "Usuários", url: "/usuarios", icon: Users },
   { title: "Pacientes", url: "/pacientes", icon: UserRound },
+];
+
+const SECRETARIA_ITEMS = [
+  { title: "Home", url: "/home", icon: Home },
+  { title: "Consultas", url: "/consultas", icon: CalendarDays },
+  { title: "Pacientes", url: "/pacientes", icon: UserRound },
   { title: "Aniversários", url: "/aniversarios", icon: Cake },
+];
+
+const MEDICO_ITEMS = [
+  { title: "Home", url: "/home", icon: Home },
+  { title: "Consultas", url: "/consultas", icon: CalendarDays },
+  { title: "Prontuários", url: "/prontuarios", icon: FileText },
 ];
 
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const { pathname } = useLocation();
+  const { user } = useAuth();
+
+  const items =
+    user?.role === "ADMIN"
+      ? ADMIN_ITEMS
+      : user?.role === "SECRETARIA"
+        ? SECRETARIA_ITEMS
+        : MEDICO_ITEMS;
+
   const isActive = (path: string) => pathname === path;
 
   return (
@@ -43,7 +62,13 @@ export function AppSidebar() {
       <SidebarContent className="bg-sidebar">
         <NavLink to="/home" className="flex items-center gap-2 px-4 py-5">
           <div className="flex items-center gap-2 py-5 border-b border-sidebar-border">
-            <img src={logo} width={50} height={50} alt="Logo"   className="w-10 h-10 min-w-10 min-h-10 object-contain rounded-2xl" />
+            <img
+              src={logo}
+              width={50}
+              height={50}
+              alt="Logo"
+              className="w-10 h-10 min-w-10 min-h-10 object-contain rounded-2xl"
+            />
             {!collapsed && (
               <div className="flex flex-col leading-tight">
                 <span className="text-sidebar-foreground font-bold text-base">ISG Cabreira</span>
@@ -73,7 +98,10 @@ export function AppSidebar() {
                           : "text-sidebar-foreground/80 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground"
                       }`}
                     >
-                      <NavLink to={item.url} className={`flex items-center ${collapsed ? "justify-center" : "gap-3"} px-3 py-2`}>
+                      <NavLink
+                        to={item.url}
+                        className={`flex items-center ${collapsed ? "justify-center" : "gap-3"} px-3 py-2`}
+                      >
                         <item.icon className="h-4 w-4 shrink-0" />
                         {!collapsed && <span className="font-medium text-sm">{item.title}</span>}
                       </NavLink>

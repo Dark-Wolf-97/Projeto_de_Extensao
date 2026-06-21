@@ -10,23 +10,30 @@ export class AuthService {
     private jwtService: JwtService,
   ) {}
 
-  async login(email: string, password: string) {
+  async login(email: string, senha: string) {
     const user = await this.usersService.findByEmail(email);
 
-    if (!user) throw new UnauthorizedException('Usuário não encontrado');
+    if (!user) {
+      throw new UnauthorizedException('E-mail ou senha inválidos');
+    }
 
-    const match = await bcrypt.compare(password, user.password);
+    const senhaCorreta = await bcrypt.compare(senha, user.senha);
 
-    if (!match) throw new UnauthorizedException('Senha inválida');
+    if (!senhaCorreta) {
+      throw new UnauthorizedException('E-mail ou senha inválidos');
+    }
+
+    const token = this.jwtService.sign({
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+    });
 
     return {
-      token: this.jwtService.sign({
-        sub: user.id,
-        email: user.email,
-        role: user.role,
-      }),
+      token,
       user: {
         id: user.id,
+        nome: user.nome,
         email: user.email,
         role: user.role,
       },

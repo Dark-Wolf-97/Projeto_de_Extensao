@@ -1,41 +1,45 @@
 import { http } from "./http";
 
+export type StatusConsulta = "AGENDADA" | "CONFIRMADA" | "REALIZADA" | "CANCELADA";
+
 export interface Consulta {
-  id?: number | string;
-  pacienteId?: number | string;
-  pacienteNome?: string;
-  data: string; // yyyy-mm-dd
-  hora: string; // HH:mm
-  medico: string;
+  id?: number;
+  pacienteId: number;
+  medicoId: number;
+  paciente?: { id: number; nome: string; cpf: string };
+  medico?: { id: number; nome: string; crm?: string; especialidade?: string };
+  prontuario?: { id: number } | null;
+  data: string;
+  hora: string;
+  status: StatusConsulta;
   observacoes?: string;
-  status?: "Agendada" | "Confirmada" | "Realizada" | "Cancelada";
+  createdAt?: string;
+  updatedAt?: string;
 }
 
+export type CreateConsultaPayload = {
+  pacienteId: number;
+  medicoId: number;
+  data: string;
+  hora: string;
+  status?: StatusConsulta;
+  observacoes?: string;
+};
+
 export const ConsultaService = {
-  listar: async (): Promise<Consulta[]> => {
-    return http<Consulta[]>("/consultas");
-  },
+  listar: (): Promise<Consulta[]> => http<Consulta[]>("/consultas"),
 
-  criar: async (consulta: Consulta): Promise<void> => {
-    await http<void>("/consultas", {
-      method: "POST",
-      json: consulta,
-    });
-  },
+  buscarPorId: (id: number): Promise<Consulta> => http<Consulta>(`/consultas/${id}`),
 
-  atualizar: async (
-    id: number | string,
-    consulta: Consulta
-  ): Promise<void> => {
-    await http<void>(`/consultas/${id}`, {
-      method: "PUT",
-      json: consulta,
-    });
-  },
+  criar: (payload: CreateConsultaPayload): Promise<Consulta> =>
+    http<Consulta>("/consultas", { method: "POST", json: payload }),
 
-  deletar: async (id: number | string): Promise<void> => {
-    await http<void>(`/consultas/${id}`, {
-      method: "DELETE",
-    });
-  },
+  atualizar: (id: number, payload: Partial<CreateConsultaPayload>): Promise<Consulta> =>
+    http<Consulta>(`/consultas/${id}`, { method: "PUT", json: payload }),
+
+  realizar: (id: number): Promise<Consulta> =>
+    http<Consulta>(`/consultas/${id}/realizar`, { method: "PATCH" }),
+
+  deletar: (id: number): Promise<void> =>
+    http<void>(`/consultas/${id}`, { method: "DELETE" }),
 };

@@ -21,15 +21,9 @@ export default function Aniversarios() {
 
   const fmt = (iso?: string) => {
     if (!iso) return "";
-
-    const date = new Date(iso);
-
+    const date = new Date(iso.split("T")[0] + "T12:00:00");
     if (isNaN(date.getTime())) return "";
-
-    return date.toLocaleDateString("pt-BR", {
-      day: "2-digit",
-      month: "long",
-    });
+    return date.toLocaleDateString("pt-BR", { day: "2-digit", month: "long" });
   };
 
   return (

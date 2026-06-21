@@ -16,6 +16,8 @@ import Aniversarios from "./pages/Aniversarios";
 import Consultas from "./pages/Consultas";
 import NotFound from "./pages/NotFound";
 import Prontuarios from "./pages/Prontuarios";
+import PacientePerfil from "./pages/PacientePerfil";
+import Configuracoes from "./pages/Configuracoes";
 
 const queryClient = new QueryClient();
 
@@ -67,6 +69,15 @@ const App = () => (
             />
 
             <Route
+              path="/pacientes/:id"
+              element={
+                <PrivateRoute>
+                  <PacientePerfil />
+                </PrivateRoute>
+              }
+            />
+
+            <Route
               path="/aniversarios"
               element={
                 <PrivateRoute>
@@ -89,6 +100,15 @@ const App = () => (
               element={
                 <PrivateRoute>
                   <Prontuarios />
+                </PrivateRoute>
+              }
+            />
+
+            <Route
+              path="/configuracoes"
+              element={
+                <PrivateRoute>
+                  <Configuracoes />
                 </PrivateRoute>
               }
             />
