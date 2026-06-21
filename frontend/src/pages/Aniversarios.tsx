@@ -11,9 +11,23 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { AniversarioService, Aniversariante } from "@/services/AniversarioService";
-import { Cake } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Cake, MessageCircle } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
+
+function abrirWhatsApp(telefone: string, mensagem: string) {
+  const numero = "55" + telefone.replace(/\D/g, "");
+  window.open(`https://wa.me/${numero}?text=${encodeURIComponent(mensagem)}`, "_blank");
+}
+
+function isAniversarioHoje(dataNascimento: string): boolean {
+  const hoje = new Date();
+  const nasc = new Date(dataNascimento.split("T")[0] + "T12:00:00");
+  return nasc.getDate() === hoje.getDate() && nasc.getMonth() === hoje.getMonth();
+}
 
 export default function Aniversarios() {
+  const { isSecretaria } = useAuth();
   const [lista, setLista] = useState<Aniversariante[]>([]);
   useEffect(() => {
     AniversarioService.listar().then(setLista);
@@ -38,6 +52,7 @@ export default function Aniversarios() {
                 <TableHead>Data</TableHead>
                 <TableHead>Idade</TableHead>
                 <TableHead>Telefone</TableHead>
+                <TableHead></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -56,6 +71,24 @@ export default function Aniversarios() {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-muted-foreground">{a.telefone}</TableCell>
+                  <TableCell>
+                    {isSecretaria() && a.telefone && isAniversarioHoje(a.dataNascimento) && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        title="Enviar parabéns via WhatsApp"
+                        className="text-green-600 hover:text-green-700 hover:border-green-300"
+                        onClick={() =>
+                          abrirWhatsApp(
+                            a.telefone!,
+                            `Ola, ${a.nome}!\n\nA equipe do Instituto de Saude de Guarapuava deseja um Feliz Aniversario!\n\nQue este dia seja repleto de alegria e saude. Muitas felicidades!`
+                          )
+                        }
+                      >
+                        <MessageCircle className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>

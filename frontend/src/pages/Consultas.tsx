@@ -12,7 +12,8 @@ import { ConsultaService, Consulta } from "@/services/ConsultaService";
 import { NovaConsultaModal } from "@/components/modals/NovaConsultaModal";
 import { ProntuarioModal } from "@/components/modals/ProntuarioModal";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
-import { AlertTriangle, CalendarPlus, CheckCircle2, Edit, FileText, Search, Trash2 } from "lucide-react";
+import { AlertTriangle, CalendarPlus, CheckCircle2, Edit, FileText, Search, Trash2, XCircle } from "lucide-react";
+import { MessageCircle } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 
@@ -32,6 +33,11 @@ const STATUS_CLASS: Record<string, string> = {
 
 function formatData(iso: string) {
   return new Date(iso.split("T")[0] + "T12:00:00").toLocaleDateString("pt-BR");
+}
+
+function abrirWhatsApp(telefone: string, mensagem: string) {
+  const numero = "55" + telefone.replace(/\D/g, "");
+  window.open(`https://wa.me/${numero}?text=${encodeURIComponent(mensagem)}`, "_blank");
 }
 
 function horasPassadas(data: string, hora: string): number {
@@ -278,17 +284,75 @@ export default function Consultas() {
                       {/* Ações do ADMIN / SECRETARIA */}
                       {podeGerenciar && (
                         <TableCell>
-                          <div className="flex gap-2">
-                            <Button variant="outline" size="sm" onClick={() => handleEditar(c)}>
-                              <Edit className="h-4 w-4" />
+                          <div className="flex gap-1.5 items-center">
+                            <Button variant="outline" size="icon" className="h-7 w-7" title="Editar" onClick={() => handleEditar(c)}>
+                              <Edit className="h-3.5 w-3.5" />
                             </Button>
                             <Button
                               variant="outline"
-                              size="sm"
+                              size="icon"
+                              className="h-7 w-7 text-destructive hover:text-destructive/90"
+                              title="Excluir"
                               onClick={() => handleDeletar(c)}
-                              className="text-destructive hover:text-destructive/90"
                             >
-                              <Trash2 className="h-4 w-4" />
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                            {isSecretaria() && (
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-7 w-7 text-green-600 hover:text-green-700 hover:border-green-300 disabled:opacity-50"
+                                title="Enviar confirmação via WhatsApp"
+                                disabled={!c.paciente?.telefone || (c.status !== "AGENDADA" && c.status !== "CONFIRMADA")}
+                                onClick={() =>
+                                  abrirWhatsApp(
+                                    c.paciente!.telefone!,
+                                    `Ola, ${c.paciente!.nome}!\n\nPassando para confirmar sua consulta agendada para o dia ${formatData(c.data)} as ${c.hora}h.\n\nPor favor, responda confirmando sua presenca ou nos avise caso precise remarcar.\n\nObrigado! - Instituto de Saude de Guarapuava`
+                                  )
+                                }
+                              >
+                                <MessageCircle className="h-3.5 w-3.5" />
+                              </Button>
+                            )}
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="h-7 w-7 text-green-600 hover:text-green-700 hover:border-green-300 disabled:opacity-50"
+                              title="Marcar como Confirmada"
+                              disabled={c.status !== "AGENDADA"}
+                              onClick={() => setConfirmar({
+                                titulo: "Confirmar Consulta",
+                                descricao: `Deseja confirmar a consulta de ${c.paciente?.nome}?`,
+                                labelConfirmar: "Confirmar",
+                                variante: "default",
+                                acao: async () => {
+                                  await ConsultaService.confirmar(c.id!);
+                                  toast.success("Consulta confirmada!");
+                                  await carregar();
+                                },
+                              })}
+                            >
+                              <CheckCircle2 className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="h-7 w-7 text-orange-500 hover:text-orange-600 hover:border-orange-300 disabled:opacity-50"
+                              title="Cancelar Consulta"
+                              disabled={c.status !== "AGENDADA" && c.status !== "CONFIRMADA"}
+                              onClick={() => setConfirmar({
+                                titulo: "Cancelar Consulta",
+                                descricao: `Deseja cancelar a consulta de ${c.paciente?.nome}?`,
+                                labelConfirmar: "Cancelar Consulta",
+                                variante: "destructive",
+                                acao: async () => {
+                                  await ConsultaService.cancelar(c.id!);
+                                  toast.success("Consulta cancelada!");
+                                  await carregar();
+                                },
+                              })}
+                            >
+                              <XCircle className="h-3.5 w-3.5" />
                             </Button>
                           </div>
                         </TableCell>
