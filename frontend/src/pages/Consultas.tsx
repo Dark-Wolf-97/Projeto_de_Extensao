@@ -266,7 +266,7 @@ export default function Consultas() {
                             >
                               <FileText className="h-4 w-4" />
                             </Button>
-                            {c.status === "AGENDADA" && (
+                            {(c.status === "AGENDADA" || c.status === "CONFIRMADA") && (
                               <Button
                                 variant="outline"
                                 size="sm"
