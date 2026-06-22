@@ -44,9 +44,16 @@ export class ConsultasService {
     return consulta;
   }
 
+  private toDateUTC(data: string): Date {
+    return new Date(`${data.split('T')[0]}T00:00:00Z`);
+  }
+
   private validateFutureDateTime(data: string, hora: string) {
-    const dataHora = new Date(`${data.split('T')[0]}T${hora}:00`);
-    if (dataHora <= new Date()) {
+    const [h, m] = hora.split(':').map(Number);
+    const [year, month, day] = data.split('T')[0].split('-').map(Number);
+    // Brasília = UTC-3: h:m local = (h+3):m UTC
+    const consultaUTC = Date.UTC(year, month - 1, day, h + 3, m);
+    if (consultaUTC <= Date.now()) {
       throw new BadRequestException(
         'A data e hora da consulta devem ser no futuro',
       );
@@ -60,7 +67,7 @@ export class ConsultasService {
     hora: string,
     excludeId?: number,
   ) {
-    const dataObj = new Date(`${data.split('T')[0]}T${hora}:00`);
+    const dataObj = this.toDateUTC(data);
 
     const whereBase = { data: dataObj, hora };
     const notSelf = excludeId ? { NOT: { id: excludeId } } : {};
@@ -94,7 +101,7 @@ export class ConsultasService {
       data: {
         pacienteId: dto.pacienteId,
         medicoId: dto.medicoId,
-        data: new Date(`${dto.data.split('T')[0]}T${dto.hora}:00`),
+        data: this.toDateUTC(dto.data),
         hora: dto.hora,
         status: dto.status ?? StatusConsulta.AGENDADA,
         observacoes: dto.observacoes,
@@ -122,7 +129,7 @@ export class ConsultasService {
       data: {
         ...(dto.pacienteId && { pacienteId: dto.pacienteId }),
         ...(dto.medicoId && { medicoId: dto.medicoId }),
-        ...(dto.data && { data: new Date(`${dto.data.split('T')[0]}T${hora}:00`) }),
+        ...(dto.data && { data: this.toDateUTC(dto.data) }),
         ...(dto.hora && { hora: dto.hora }),
         ...(dto.status && { status: dto.status }),
         ...(dto.observacoes !== undefined && { observacoes: dto.observacoes }),
