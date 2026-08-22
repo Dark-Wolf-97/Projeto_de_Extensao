@@ -13,6 +13,7 @@ import { Role } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { AuthenticatedRequest } from '../auth/interfaces/authenticated-user.interface';
 import { ProntuariosService } from './prontuarios.service';
 import { CreateProntuarioDto } from './dto/create-prontuario.dto';
 import { UpdateProntuarioDto } from './dto/update-prontuario.dto';
@@ -24,34 +25,47 @@ export class ProntuariosController {
 
   @Post()
   @Roles(Role.MEDICO)
-  create(@Body() dto: CreateProntuarioDto, @Request() req: any) {
-    return this.service.create(dto, req.user.id);
+  create(
+    @Body() dto: CreateProntuarioDto,
+    @Request() req: AuthenticatedRequest,
+  ) {
+    return this.service.create(dto, req.user);
   }
 
   @Get()
-  findAll(@Request() req: any) {
+  @Roles(Role.ADMIN, Role.MEDICO)
+  findAll(@Request() req: AuthenticatedRequest) {
     return this.service.findAll(req.user);
   }
 
   @Get('consulta/:consultaId')
-  findByConsulta(@Param('consultaId') consultaId: string) {
-    return this.service.findByConsulta(Number(consultaId));
+  @Roles(Role.ADMIN, Role.MEDICO)
+  findByConsulta(
+    @Param('consultaId') consultaId: string,
+    @Request() req: AuthenticatedRequest,
+  ) {
+    return this.service.findByConsulta(Number(consultaId), req.user);
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.service.findOne(Number(id));
+  @Roles(Role.ADMIN, Role.MEDICO)
+  findOne(@Param('id') id: string, @Request() req: AuthenticatedRequest) {
+    return this.service.findOne(Number(id), req.user);
   }
 
   @Put(':id')
   @Roles(Role.MEDICO, Role.ADMIN)
-  update(@Param('id') id: string, @Body() dto: UpdateProntuarioDto, @Request() req: any) {
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdateProntuarioDto,
+    @Request() req: AuthenticatedRequest,
+  ) {
     return this.service.update(Number(id), dto, req.user);
   }
 
   @Delete(':id')
   @Roles(Role.ADMIN, Role.MEDICO)
-  remove(@Param('id') id: string, @Request() req: any) {
+  remove(@Param('id') id: string, @Request() req: AuthenticatedRequest) {
     return this.service.remove(Number(id), req.user);
   }
 }

@@ -1,4 +1,4 @@
-export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+export const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 type HttpOptions = RequestInit & { json?: unknown };
 
@@ -35,10 +35,10 @@ export async function http<T>(path: string, options: HttpOptions = {}): Promise<
 
 export function httpErrorMessage(err: unknown): { status: string; detail: string } {
   const raw = err instanceof Error ? err.message : String(err);
-  const colonIdx = raw.indexOf(':');
-  if (colonIdx === -1) return { status: '', detail: raw };
+  const match = raw.match(/(?:^|\s)(\d{3})(?::\s*|\s+)(.*)$/);
+  if (!match) return { status: '', detail: raw };
   return {
-    status: raw.slice(0, colonIdx),
-    detail: raw.slice(colonIdx + 1),
+    status: match[1],
+    detail: match[2],
   };
 }

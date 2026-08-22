@@ -11,7 +11,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { UsuarioService, Usuario, Role } from "@/services/UsuarioService";
-import { toast } from "sonner";
+import { httpErrorMessage } from "@/services/http";
+import { toast } from "@/components/ui/sonner";
 import { Check, X } from "lucide-react";
 
 interface SenhaRequisito {
@@ -127,11 +128,13 @@ export function UsuarioModal({ open, onOpenChange, onSaved, usuario }: Props) {
       onSaved?.();
       onOpenChange(false);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "";
-      if (msg.includes("409")) {
+      const { status, detail } = httpErrorMessage(err);
+      if (status === "409") {
         toast.error("E-mail já cadastrado para outro usuário");
+      } else if (status === "400" && detail) {
+        toast.error(detail);
       } else {
-        toast.error("Erro ao salvar usuário");
+        toast.error(err);
       }
     } finally {
       setSaving(false);
@@ -142,9 +145,9 @@ export function UsuarioModal({ open, onOpenChange, onSaved, usuario }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[480px]">
-        <DialogHeader>
-          <DialogTitle className="text-primary">
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[720px]">
+        <DialogHeader className="border-b pb-4 pr-8">
+          <DialogTitle>
             {usuario ? "Editar Usuário" : "Novo Usuário"}
           </DialogTitle>
           <DialogDescription>
@@ -152,7 +155,8 @@ export function UsuarioModal({ open, onOpenChange, onSaved, usuario }: Props) {
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="grid gap-4 py-2">
+        <form onSubmit={handleSubmit} className="grid gap-5 py-1">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="grid gap-2">
             <Label htmlFor="nome">Nome</Label>
             <Input
@@ -160,6 +164,7 @@ export function UsuarioModal({ open, onOpenChange, onSaved, usuario }: Props) {
               value={form.nome}
               onChange={(e) => set("nome", e.target.value.replace(/[^a-zA-ZÀ-ÿ\s]/g, ""))}
               placeholder="Nome completo"
+              autoComplete="name"
               required
               maxLength={100}
             />
@@ -173,6 +178,7 @@ export function UsuarioModal({ open, onOpenChange, onSaved, usuario }: Props) {
               value={form.email}
               onChange={(e) => set("email", e.target.value)}
               placeholder="email@exemplo.com"
+              autoComplete="email"
               required
               maxLength={150}
             />
@@ -188,6 +194,7 @@ export function UsuarioModal({ open, onOpenChange, onSaved, usuario }: Props) {
               value={form.senha ?? ""}
               onChange={(e) => set("senha", e.target.value)}
               placeholder={usuario ? "••••••••" : "Mínimo 6 caracteres"}
+              autoComplete="new-password"
             />
             {form.senha && (
               <ul className="grid grid-cols-2 gap-1 mt-1">
@@ -227,6 +234,8 @@ export function UsuarioModal({ open, onOpenChange, onSaved, usuario }: Props) {
               value={form.telefone ?? ""}
               onChange={(e) => set("telefone", formatTelefone(e.target.value))}
               placeholder="(11) 99999-9999"
+              inputMode="tel"
+              autoComplete="tel"
               maxLength={16}
             />
           </div>
@@ -258,8 +267,9 @@ export function UsuarioModal({ open, onOpenChange, onSaved, usuario }: Props) {
               </div>
             </>
           )}
+          </div>
 
-          <DialogFooter>
+          <DialogFooter className="border-t pt-4">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>

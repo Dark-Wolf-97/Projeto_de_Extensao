@@ -32,12 +32,12 @@ export function ConfirmDialog({
 }: Props) {
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
+      <AlertDialogContent className="sm:max-w-[460px]">
+        <AlertDialogHeader className="border-b pb-4 pr-8 text-left">
           <AlertDialogTitle>{titulo}</AlertDialogTitle>
           <AlertDialogDescription>{descricao}</AlertDialogDescription>
         </AlertDialogHeader>
-        <AlertDialogFooter>
+        <AlertDialogFooter className="border-t pt-4">
           <AlertDialogCancel disabled={carregando}>Cancelar</AlertDialogCancel>
           <AlertDialogAction
             disabled={carregando}

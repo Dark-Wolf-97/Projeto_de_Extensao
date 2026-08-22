@@ -4,6 +4,8 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { Role } from '@prisma/client';
+import { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateProntuarioDto } from './dto/create-prontuario.dto';
 import { UpdateProntuarioDto } from './dto/update-prontuario.dto';
@@ -21,20 +23,32 @@ const INCLUDE = {
 export class ProntuariosService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(dto: CreateProntuarioDto, userId: number) {
+  private assertAccess(user: AuthenticatedUser, medicoId: number) {
+    const permitted =
+      user.role === Role.ADMIN ||
+      (user.role === Role.MEDICO && user.id === medicoId);
+
+    if (!permitted) {
+      throw new ForbiddenException('Acesso ao prontuário não autorizado');
+    }
+  }
+
+  async create(dto: CreateProntuarioDto, user: AuthenticatedUser) {
+    if (user.role !== Role.MEDICO) {
+      throw new ForbiddenException('Apenas médicos podem criar prontuários');
+    }
+
     const consulta = await this.prisma.consulta.findUnique({
       where: { id: dto.consultaId },
     });
     if (!consulta) throw new NotFoundException('Consulta não encontrada');
-    if (consulta.medicoId !== userId)
-      throw new ForbiddenException(
-        'Você só pode criar prontuários para suas próprias consultas',
-      );
+    this.assertAccess(user, consulta.medicoId);
 
     const existente = await this.prisma.prontuario.findUnique({
       where: { consultaId: dto.consultaId },
     });
-    if (existente) throw new ConflictException('Já existe um prontuário para esta consulta');
+    if (existente)
+      throw new ConflictException('Já existe um prontuário para esta consulta');
 
     return this.prisma.prontuario.create({
       data: {
@@ -48,8 +62,13 @@ export class ProntuariosService {
     });
   }
 
-  findAll(user: { id: number; role: string }) {
-    const where = user.role === 'MEDICO' ? { consulta: { medicoId: user.id } } : {};
+  findAll(user: AuthenticatedUser) {
+    if (user.role === Role.SECRETARIA) {
+      throw new ForbiddenException('Acesso ao prontuário não autorizado');
+    }
+
+    const where =
+      user.role === Role.MEDICO ? { consulta: { medicoId: user.id } } : {};
     return this.prisma.prontuario.findMany({
       where,
       include: INCLUDE,
@@ -57,29 +76,28 @@ export class ProntuariosService {
     });
   }
 
-  async findOne(id: number) {
+  async findOne(id: number, user: AuthenticatedUser) {
     const prontuario = await this.prisma.prontuario.findUnique({
       where: { id },
       include: INCLUDE,
     });
     if (!prontuario) throw new NotFoundException('Prontuário não encontrado');
+    this.assertAccess(user, prontuario.consulta.medico.id);
     return prontuario;
   }
 
-  async findByConsulta(consultaId: number) {
+  async findByConsulta(consultaId: number, user: AuthenticatedUser) {
     const prontuario = await this.prisma.prontuario.findUnique({
       where: { consultaId },
       include: INCLUDE,
     });
     if (!prontuario) throw new NotFoundException('Prontuário não encontrado');
+    this.assertAccess(user, prontuario.consulta.medico.id);
     return prontuario;
   }
 
-  async update(id: number, dto: UpdateProntuarioDto, user: { id: number; role: string }) {
-    const prontuario = await this.findOne(id);
-    if (user.role === 'MEDICO' && prontuario.consulta.medico.id !== user.id) {
-      throw new ForbiddenException('Você só pode editar seus próprios prontuários');
-    }
+  async update(id: number, dto: UpdateProntuarioDto, user: AuthenticatedUser) {
+    await this.findOne(id, user);
     return this.prisma.prontuario.update({
       where: { id },
       data: dto,
@@ -87,11 +105,8 @@ export class ProntuariosService {
     });
   }
 
-  async remove(id: number, user: { id: number; role: string }) {
-    const prontuario = await this.findOne(id);
-    if (user.role === 'MEDICO' && prontuario.consulta.medico.id !== user.id) {
-      throw new ForbiddenException('Você só pode excluir seus próprios prontuários');
-    }
+  async remove(id: number, user: AuthenticatedUser) {
+    await this.findOne(id, user);
     return this.prisma.prontuario.delete({ where: { id } });
   }
 }

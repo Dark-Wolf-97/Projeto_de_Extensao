@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreatePacienteDto } from './dto/create-paciente.dto';
 import { UpdatePacienteDto } from './dto/update-paciente.dto';
@@ -42,15 +46,20 @@ export class PacientesService {
   }
 
   async criar(data: CreatePacienteDto) {
-    const existente = await this.prisma.paciente.findUnique({ where: { cpf: data.cpf } });
-    if (existente) throw new ConflictException('CPF já cadastrado para outro paciente');
+    const existente = await this.prisma.paciente.findUnique({
+      where: { cpf: data.cpf },
+    });
+    if (existente)
+      throw new ConflictException('CPF já cadastrado para outro paciente');
 
     return this.prisma.paciente.create({
       data: {
         nome: data.nome,
         cpf: data.cpf,
         telefone: data.telefone,
-        dataNascimento: data.dataNascimento ? new Date(data.dataNascimento) : null,
+        dataNascimento: data.dataNascimento
+          ? new Date(data.dataNascimento)
+          : null,
       },
     });
   }
@@ -62,7 +71,8 @@ export class PacientesService {
       const existente = await this.prisma.paciente.findFirst({
         where: { cpf: data.cpf, NOT: { id } },
       });
-      if (existente) throw new ConflictException('CPF já cadastrado para outro paciente');
+      if (existente)
+        throw new ConflictException('CPF já cadastrado para outro paciente');
     }
 
     return this.prisma.paciente.update({
@@ -71,13 +81,25 @@ export class PacientesService {
         nome: data.nome,
         cpf: data.cpf,
         telefone: data.telefone,
-        dataNascimento: data.dataNascimento ? new Date(data.dataNascimento) : null,
+        dataNascimento: data.dataNascimento
+          ? new Date(data.dataNascimento)
+          : null,
       },
     });
   }
 
   async remover(id: number) {
     await this.findOne(id);
+
+    const consultasVinculadas = await this.prisma.consulta.count({
+      where: { pacienteId: id },
+    });
+    if (consultasVinculadas > 0) {
+      throw new ConflictException(
+        'Não é possível excluir o paciente porque existem consultas vinculadas. Mantenha o cadastro para preservar o histórico clínico; consultas futuras podem ser canceladas.',
+      );
+    }
+
     return this.prisma.paciente.delete({ where: { id } });
   }
 
@@ -87,7 +109,9 @@ export class PacientesService {
       .findMany({ where: { dataNascimento: { not: null } } })
       .then((pacientes) =>
         pacientes
-          .filter((p) => new Date(p.dataNascimento!).getMonth() + 1 === mesAtual)
+          .filter(
+            (p) => new Date(p.dataNascimento!).getMonth() + 1 === mesAtual,
+          )
           .map((p) => ({
             id: p.id,
             nome: p.nome,

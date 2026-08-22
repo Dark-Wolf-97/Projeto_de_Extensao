@@ -15,7 +15,7 @@ import { ConsultaService, Consulta, StatusConsulta } from "@/services/ConsultaSe
 import { PacienteService, Paciente } from "@/services/PacienteService";
 import { UsuarioService, MedicoResumo } from "@/services/UsuarioService";
 import { httpErrorMessage } from "@/services/http";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/sonner";
 
 const STATUS_OPTIONS: { value: StatusConsulta; label: string }[] = [
   { value: "AGENDADA", label: "Agendada" },
@@ -65,8 +65,8 @@ export function NovaConsultaModal({ open, onOpenChange, onSaved, consulta }: Pro
     if (!open || todosMedicos.length > 0) return;
     UsuarioService.listarMedicos()
       .then(setTodosMedicos)
-      .catch(() => toast.error("Erro ao carregar médicos"));
-  }, [open]);
+      .catch((err) => toast.error(err));
+  }, [open, todosMedicos.length]);
 
   // Filtra médicos conforme busca
   useEffect(() => {
@@ -87,7 +87,9 @@ export function NovaConsultaModal({ open, onOpenChange, onSaved, consulta }: Pro
       return;
     }
     const timer = setTimeout(() => {
-      PacienteService.buscar(buscaPaciente).then(setPacientes).catch(() => {});
+      PacienteService.buscar(buscaPaciente)
+        .then(setPacientes)
+        .catch((err) => toast.error(err));
     }, 300);
     return () => clearTimeout(timer);
   }, [buscaPaciente, pacienteSelecionado]);
@@ -105,7 +107,12 @@ export function NovaConsultaModal({ open, onOpenChange, onSaved, consulta }: Pro
         observacoes: consulta.observacoes ?? "",
       });
       if (consulta.paciente) {
-        setPacienteSelecionado({ id: consulta.paciente.id, nome: consulta.paciente.nome, cpf: consulta.paciente.cpf });
+        setPacienteSelecionado({
+          id: consulta.paciente.id,
+          nome: consulta.paciente.nome,
+          cpf: consulta.paciente.cpf,
+          telefone: consulta.paciente.telefone ?? "",
+        });
         setBuscaPaciente(consulta.paciente.nome);
       }
       if (consulta.medico) {
@@ -127,10 +134,12 @@ export function NovaConsultaModal({ open, onOpenChange, onSaved, consulta }: Pro
   const set = <K extends keyof typeof form>(field: K, value: (typeof form)[K]) =>
     setForm((f) => ({ ...f, [field]: value }));
 
-  const today = new Date().toISOString().split("T")[0];
-  const dataInvalida = form.data && form.hora && !isFutureDateTime(form.data, form.hora);
-
   const isEdit = !!consulta?.id;
+  const today = new Date().toISOString().split("T")[0];
+  const horarioFoiAlterado = !isEdit || consulta?.data.split("T")[0] !== form.data || consulta?.hora !== form.hora;
+  const dataInvalida = Boolean(
+    form.data && form.hora && horarioFoiAlterado && !isFutureDateTime(form.data, form.hora),
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -172,9 +181,9 @@ export function NovaConsultaModal({ open, onOpenChange, onSaved, consulta }: Pro
     } catch (err) {
       const { status, detail } = httpErrorMessage(err);
       if (status === "409" || status === "400") {
-        toast.error(detail);
+        toast.error(detail || err);
       } else {
-        toast.error("Erro ao salvar consulta");
+        toast.error(err);
       }
     } finally {
       setSaving(false);
@@ -183,9 +192,9 @@ export function NovaConsultaModal({ open, onOpenChange, onSaved, consulta }: Pro
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[520px] max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="text-primary">
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[760px]">
+        <DialogHeader className="border-b pb-4 pr-8">
+          <DialogTitle>
             {isEdit ? "Editar Consulta" : "Nova Consulta"}
           </DialogTitle>
           <DialogDescription>
@@ -193,12 +202,13 @@ export function NovaConsultaModal({ open, onOpenChange, onSaved, consulta }: Pro
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="grid gap-4 py-2">
+        <form onSubmit={handleSubmit} className="grid gap-5 py-1">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 
-          {/* Paciente */}
           <div className="grid gap-2">
-            <Label>Paciente</Label>
+            <Label htmlFor="paciente">Paciente</Label>
             <Input
+              id="paciente"
               value={buscaPaciente}
               onChange={(e) => {
                 setBuscaPaciente(e.target.value.replace(/[^a-zA-ZÀ-ÿ\s]/g, ""));
@@ -207,11 +217,12 @@ export function NovaConsultaModal({ open, onOpenChange, onSaved, consulta }: Pro
               placeholder="Digite o nome do paciente"
             />
             {pacientes.length > 0 && !pacienteSelecionado && (
-              <div className="border rounded-md max-h-40 overflow-auto shadow-sm">
+              <div className="max-h-40 overflow-auto rounded-md border bg-popover p-1 shadow-sm" role="listbox" aria-label="Resultados de pacientes">
                 {pacientes.map((p) => (
-                  <div
+                  <button
+                    type="button"
                     key={p.id}
-                    className="p-2 hover:bg-muted cursor-pointer"
+                    className="w-full rounded px-2 py-2 text-left hover:bg-muted focus:bg-muted focus:outline-none"
                     onClick={() => {
                       setPacienteSelecionado(p);
                       setBuscaPaciente(p.nome);
@@ -220,19 +231,19 @@ export function NovaConsultaModal({ open, onOpenChange, onSaved, consulta }: Pro
                   >
                     <div className="font-medium text-sm">{p.nome}</div>
                     <div className="text-xs text-muted-foreground">{p.cpf}</div>
-                  </div>
+                  </button>
                 ))}
               </div>
             )}
             {pacienteSelecionado && (
-              <p className="text-xs text-green-600">✔ {pacienteSelecionado.nome} — {pacienteSelecionado.cpf}</p>
+              <p className="text-xs text-emerald-700">Paciente selecionado: {pacienteSelecionado.nome} · {pacienteSelecionado.cpf}</p>
             )}
           </div>
 
-          {/* Médico */}
           <div className="grid gap-2">
-            <Label>Médico</Label>
+            <Label htmlFor="medico">Médico</Label>
             <Input
+              id="medico"
               value={buscaMedico}
               onChange={(e) => {
                 setBuscaMedico(e.target.value.replace(/[^a-zA-ZÀ-ÿ\s]/g, ""));
@@ -241,11 +252,12 @@ export function NovaConsultaModal({ open, onOpenChange, onSaved, consulta }: Pro
               placeholder="Digite o nome do médico"
             />
             {medicosFiltrados.length > 0 && !medicoSelecionado && (
-              <div className="border rounded-md max-h-40 overflow-auto shadow-sm">
+              <div className="max-h-40 overflow-auto rounded-md border bg-popover p-1 shadow-sm" role="listbox" aria-label="Resultados de médicos">
                 {medicosFiltrados.map((m) => (
-                  <div
+                  <button
+                    type="button"
                     key={m.id}
-                    className="p-2 hover:bg-muted cursor-pointer"
+                    className="w-full rounded px-2 py-2 text-left hover:bg-muted focus:bg-muted focus:outline-none"
                     onClick={() => {
                       setMedicoSelecionado(m);
                       setForm((f) => ({ ...f, medicoId: m.id }));
@@ -259,32 +271,30 @@ export function NovaConsultaModal({ open, onOpenChange, onSaved, consulta }: Pro
                       {m.crm && m.especialidade && <span> · </span>}
                       {m.especialidade && <span>{m.especialidade}</span>}
                     </div>
-                  </div>
+                  </button>
                 ))}
               </div>
             )}
             {medicoSelecionado && (
-              <p className="text-xs text-green-600">
-                ✔ {medicoSelecionado.nome}
+              <p className="text-xs text-emerald-700">
+                Médico selecionado: {medicoSelecionado.nome}
                 {medicoSelecionado.crm && ` — CRM: ${medicoSelecionado.crm}`}
               </p>
             )}
           </div>
 
-          {/* Data e Hora */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="grid gap-2">
+          <div className="grid gap-2">
               <Label htmlFor="data">Data</Label>
               <Input
                 id="data"
                 type="date"
                 value={form.data}
-                min={today}
+                min={isEdit ? undefined : today}
                 onChange={(e) => set("data", e.target.value)}
                 required
               />
-            </div>
-            <div className="grid gap-2">
+          </div>
+          <div className="grid gap-2">
               <Label htmlFor="hora">Hora</Label>
               <Input
                 id="hora"
@@ -293,15 +303,13 @@ export function NovaConsultaModal({ open, onOpenChange, onSaved, consulta }: Pro
                 onChange={(e) => set("hora", e.target.value)}
                 required
               />
-            </div>
           </div>
           {dataInvalida && (
-            <p className="text-xs text-destructive -mt-2">
+            <p className="text-xs text-destructive -mt-2 sm:col-span-2">
               Data e hora devem ser no futuro
             </p>
           )}
 
-          {/* Status */}
           <div className="grid gap-2">
             <Label htmlFor="status">Status</Label>
             <select
@@ -316,8 +324,7 @@ export function NovaConsultaModal({ open, onOpenChange, onSaved, consulta }: Pro
             </select>
           </div>
 
-          {/* Observações */}
-          <div className="grid gap-2">
+          <div className="grid gap-2 sm:col-span-2">
             <Label htmlFor="observacoes">Observações</Label>
             <Textarea
               id="observacoes"
@@ -328,8 +335,9 @@ export function NovaConsultaModal({ open, onOpenChange, onSaved, consulta }: Pro
               rows={3}
             />
           </div>
+          </div>
 
-          <DialogFooter>
+          <DialogFooter className="border-t pt-4">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>

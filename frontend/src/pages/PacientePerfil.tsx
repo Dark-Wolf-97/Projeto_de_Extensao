@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/table";
 import { PacienteService, PacientePerfil as IPacientePerfil } from "@/services/PacienteService";
 import { ArrowLeft, FileText, User } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/sonner";
 
 const STATUS_LABEL: Record<string, string> = {
   AGENDADA: "Agendada",
@@ -40,7 +40,7 @@ export default function PacientePerfil() {
     if (!id) return;
     PacienteService.buscarPerfil(Number(id))
       .then(setPerfil)
-      .catch(() => toast.error("Paciente não encontrado"))
+      .catch((err) => toast.error(err))
       .finally(() => setLoading(false));
   }, [id]);
 

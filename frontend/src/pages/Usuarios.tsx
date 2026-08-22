@@ -16,7 +16,8 @@ import { UsuarioService, Usuario } from "@/services/UsuarioService";
 import { UsuarioModal } from "@/components/modals/UsuarioModal";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Edit, Search, Trash2, UserPlus } from "lucide-react";
-import { toast } from "sonner";
+import { httpErrorMessage } from "@/services/http";
+import { toast } from "@/components/ui/sonner";
 
 const ROLE_LABEL: Record<string, string> = {
   ADMIN: "Administrador",
@@ -41,8 +42,8 @@ export default function Usuarios() {
   const carregar = async () => {
     try {
       setUsuarios(await UsuarioService.listar());
-    } catch {
-      toast.error("Erro ao carregar usuários");
+    } catch (err) {
+      toast.error(err);
     }
   };
 
@@ -52,8 +53,8 @@ export default function Usuarios() {
     if (!busca.trim()) return carregar();
     try {
       setUsuarios(await UsuarioService.buscarPorNome(busca));
-    } catch {
-      toast.error("Erro ao buscar usuários");
+    } catch (err) {
+      toast.error(err);
     }
   };
 
@@ -68,8 +69,9 @@ export default function Usuarios() {
           await UsuarioService.deletar(usuario.id!);
           toast.success("Usuário removido com sucesso!");
           await carregar();
-        } catch {
-          toast.error("Erro ao remover usuário");
+        } catch (err) {
+          const { detail } = httpErrorMessage(err);
+          toast.error(detail || err);
         }
       },
     });
@@ -144,6 +146,7 @@ export default function Usuarios() {
                         <Button
                           variant="outline"
                           size="sm"
+                          aria-label={`Editar usuário ${u.nome}`}
                           onClick={() => handleEditar(u)}
                         >
                           <Edit className="h-4 w-4" />
@@ -151,6 +154,7 @@ export default function Usuarios() {
                         <Button
                           variant="outline"
                           size="sm"
+                          aria-label={`Excluir usuário ${u.nome}`}
                           onClick={() => handleDeletar(u)}
                           className="text-destructive hover:text-destructive/90"
                         >

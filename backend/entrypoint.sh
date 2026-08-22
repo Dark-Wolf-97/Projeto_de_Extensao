@@ -5,4 +5,4 @@ echo "Rodando migrations..."
 npx prisma migrate deploy
 
 echo "Iniciando servidor..."
-exec node dist/main
+exec node dist/src/main

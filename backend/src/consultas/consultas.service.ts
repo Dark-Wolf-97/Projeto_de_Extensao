@@ -141,7 +141,9 @@ export class ConsultasService {
   async realizar(id: number, medicoId: number) {
     const consulta = await this.findOne(id);
     if (consulta.medicoId !== medicoId) {
-      throw new ForbiddenException('Você só pode atualizar suas próprias consultas');
+      throw new ForbiddenException(
+        'Você só pode atualizar suas próprias consultas',
+      );
     }
     return this.prisma.consulta.update({
       where: { id },
@@ -169,7 +171,12 @@ export class ConsultasService {
   }
 
   async remove(id: number) {
-    await this.findOne(id);
+    const consulta = await this.findOne(id);
+    if (consulta.prontuario) {
+      throw new ConflictException(
+        'Não é possível excluir a consulta porque ela possui prontuário. Mantenha a consulta para preservar o histórico clínico.',
+      );
+    }
     return this.prisma.consulta.delete({ where: { id } });
   }
 }

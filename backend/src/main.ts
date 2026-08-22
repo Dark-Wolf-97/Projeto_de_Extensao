@@ -6,7 +6,13 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  app.enableCors();
+  const allowedOrigins = process.env.CORS_ORIGIN?.split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
+  if (allowedOrigins?.length) {
+    app.enableCors({ origin: allowedOrigins });
+  }
 
   app.useGlobalPipes(
     new ValidationPipe({

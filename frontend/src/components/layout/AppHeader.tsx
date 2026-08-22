@@ -7,7 +7,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Settings, LogOut } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -25,6 +25,14 @@ export function AppHeader() {
     ? user.nome.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase()
     : "US";
 
+  const roleLabel = user?.role === "ADMIN"
+    ? "Administrador"
+    : user?.role === "MEDICO"
+      ? "Médico"
+      : user?.role === "SECRETARIA"
+        ? "Secretária"
+        : "";
+
   return (
     <header className="h-16 border-b border-border bg-card flex items-center justify-between px-4 gap-4 shadow-sm">
       <div className="flex items-center gap-3">
@@ -40,7 +48,7 @@ export function AppHeader() {
       <div className="flex items-center gap-3">
         <div className="hidden sm:flex flex-col items-end leading-tight">
           <span className="text-sm font-semibold text-foreground">{user?.nome ?? "Usuário"}</span>
-          <span className="text-[11px] text-muted-foreground">{user?.cargo ?? ""}</span>
+          <span className="text-[11px] text-muted-foreground">{roleLabel}</span>
         </div>
 
         <DropdownMenu>
@@ -50,7 +58,6 @@ export function AppHeader() {
               aria-label="Menu do usuário"
             >
               <Avatar className="h-10 w-10">
-                <AvatarImage src={user?.avatarUrl} alt={user?.nome} />
                 <AvatarFallback className="bg-primary text-primary-foreground font-semibold">
                   {initials}
                 </AvatarFallback>

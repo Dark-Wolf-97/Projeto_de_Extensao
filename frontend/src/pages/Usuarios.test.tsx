@@ -30,7 +30,6 @@ vi.mock('@/components/layout/PageShell', () => ({
 
 const mockListar = UsuarioService.listar as ReturnType<typeof vi.fn>;
 const mockDeletar = UsuarioService.deletar as ReturnType<typeof vi.fn>;
-const confirmSpy = vi.spyOn(window, 'confirm');
 
 const usuariosMock = [
   {
@@ -52,7 +51,6 @@ const usuariosMock = [
 beforeEach(() => {
   mockListar.mockResolvedValue(usuariosMock);
   mockDeletar.mockResolvedValue(undefined);
-  confirmSpy.mockReturnValue(true);
 });
 
 afterEach(() => {
@@ -108,6 +106,7 @@ describe('Usuarios', () => {
   it('deve abrir o modal ao clicar em "Novo Usuário"', async () => {
     render(<Usuarios />);
 
+    await screen.findByText('admin@clinica.com');
     fireEvent.click(screen.getByRole('button', { name: /novo usuário/i }));
 
     expect(screen.getByTestId('usuario-modal')).toBeInTheDocument();
@@ -118,9 +117,7 @@ describe('Usuarios', () => {
 
     await waitFor(() => screen.getByText('admin@clinica.com'));
 
-    const rows = screen.getAllByRole('row');
-    const botoesLinhAdmin = within(rows[1]).getAllByRole('button');
-    fireEvent.click(botoesLinhAdmin[0]);
+    fireEvent.click(screen.getByRole('button', { name: 'Editar usuário Ana Santos' }));
 
     expect(screen.getByTestId('usuario-modal')).toBeInTheDocument();
   });
@@ -130,9 +127,8 @@ describe('Usuarios', () => {
 
     await waitFor(() => screen.getByText('admin@clinica.com'));
 
-    const rows = screen.getAllByRole('row');
-    const botoesLinhaAdmin = within(rows[1]).getAllByRole('button');
-    fireEvent.click(botoesLinhaAdmin[1]);
+    fireEvent.click(screen.getByRole('button', { name: 'Excluir usuário Ana Santos' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Remover' }));
 
     await waitFor(() => {
       expect(mockDeletar).toHaveBeenCalledWith(1);
@@ -140,15 +136,12 @@ describe('Usuarios', () => {
   });
 
   it('não deve chamar deletar quando cancelar a confirmação', async () => {
-    confirmSpy.mockReturnValue(false);
-
     render(<Usuarios />);
 
     await waitFor(() => screen.getByText('admin@clinica.com'));
 
-    const rows = screen.getAllByRole('row');
-    const botoesLinhaAdmin = within(rows[1]).getAllByRole('button');
-    fireEvent.click(botoesLinhaAdmin[1]);
+    fireEvent.click(screen.getByRole('button', { name: 'Excluir usuário Ana Santos' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
 
     expect(mockDeletar).not.toHaveBeenCalled();
   });

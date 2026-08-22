@@ -17,7 +17,7 @@ import { Consulta } from "@/services/ConsultaService";
 import { httpErrorMessage } from "@/services/http";
 import { useAuth } from "@/context/AuthContext";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/sonner";
 
 const STATUS_LABEL: Record<string, string> = {
   AGENDADA: "Agendada",
@@ -93,7 +93,7 @@ export function ProntuarioModal({ open, onOpenChange, consulta, onSaved }: Props
             : FORM_VAZIO,
         );
       })
-      .catch(() => toast.error("Erro ao carregar prontuário"))
+      .catch((err) => toast.error(err))
       .finally(() => setLoading(false));
   }, [open, consulta?.id]);
 
@@ -110,7 +110,7 @@ export function ProntuarioModal({ open, onOpenChange, consulta, onSaved }: Props
       onOpenChange(false);
     } catch (err) {
       const { detail } = httpErrorMessage(err);
-      toast.error(detail || "Erro ao excluir prontuário");
+      toast.error(detail || err);
     } finally {
       setDeleting(false);
     }
@@ -142,9 +142,9 @@ export function ProntuarioModal({ open, onOpenChange, consulta, onSaved }: Props
     } catch (err) {
       const { status, detail } = httpErrorMessage(err);
       if (status === "403" || status === "409") {
-        toast.error(detail);
+        toast.error(detail || err);
       } else {
-        toast.error("Erro ao salvar prontuário");
+        toast.error(err);
       }
     } finally {
       setSaving(false);
@@ -160,9 +160,9 @@ export function ProntuarioModal({ open, onOpenChange, consulta, onSaved }: Props
   return (
     <>
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="text-primary">{title}</DialogTitle>
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[820px]">
+        <DialogHeader className="border-b pb-4 pr-8">
+          <DialogTitle>{title}</DialogTitle>
           {consulta && (
             <DialogDescription asChild>
               <div className="flex flex-wrap items-center gap-2 mt-1 text-sm">
@@ -190,7 +190,8 @@ export function ProntuarioModal({ open, onOpenChange, consulta, onSaved }: Props
             Carregando prontuário...
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="grid gap-4 py-2">
+          <form onSubmit={handleSubmit} className="grid gap-5 py-1">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="grid gap-2">
               <Label htmlFor="anamnese">Anamnese</Label>
               <Textarea
@@ -200,7 +201,7 @@ export function ProntuarioModal({ open, onOpenChange, consulta, onSaved }: Props
                 onChange={(e) => set("anamnese", e.target.value)}
                 readOnly={!canEdit}
                 maxLength={5000}
-                rows={4}
+                rows={5}
               />
             </div>
 
@@ -213,7 +214,7 @@ export function ProntuarioModal({ open, onOpenChange, consulta, onSaved }: Props
                 onChange={(e) => set("diagnostico", e.target.value)}
                 readOnly={!canEdit}
                 maxLength={5000}
-                rows={4}
+                rows={5}
               />
             </div>
 
@@ -226,7 +227,7 @@ export function ProntuarioModal({ open, onOpenChange, consulta, onSaved }: Props
                 onChange={(e) => set("prescricao", e.target.value)}
                 readOnly={!canEdit}
                 maxLength={5000}
-                rows={4}
+                rows={5}
               />
             </div>
 
@@ -239,11 +240,12 @@ export function ProntuarioModal({ open, onOpenChange, consulta, onSaved }: Props
                 onChange={(e) => set("observacoes", e.target.value)}
                 readOnly={!canEdit}
                 maxLength={5000}
-                rows={3}
+                rows={5}
               />
             </div>
+            </div>
 
-            <DialogFooter className="flex-col-reverse gap-2 sm:flex-row sm:justify-between">
+            <DialogFooter className="flex-col-reverse gap-2 border-t pt-4 sm:flex-row sm:justify-between">
               <div>
                 {canEdit && prontuario?.id && (
                   <Button

@@ -42,7 +42,6 @@ const mockNavigate = vi.fn();
 const mockListar = ConsultaService.listar as ReturnType<typeof vi.fn>;
 const mockDeletar = ConsultaService.deletar as ReturnType<typeof vi.fn>;
 const mockUseAuth = useAuth as ReturnType<typeof vi.fn>;
-const confirmSpy = vi.spyOn(window, 'confirm');
 
 const authAdmin = {
   user: { id: 1, nome: 'Admin', email: 'admin@clinica.com', role: 'ADMIN' },
@@ -84,7 +83,6 @@ const consultasMock = [
 beforeEach(() => {
   mockListar.mockResolvedValue(consultasMock);
   mockDeletar.mockResolvedValue(undefined);
-  confirmSpy.mockReturnValue(true);
   mockUseAuth.mockReturnValue(authAdmin);
 });
 
@@ -130,6 +128,7 @@ describe('Consultas', () => {
   it('ADMIN deve ver o botão "Nova Consulta"', async () => {
     render(<Consultas />);
 
+    await screen.findByText('Maria Silva');
     expect(screen.getByRole('button', { name: /nova consulta/i })).toBeInTheDocument();
   });
 
@@ -139,9 +138,8 @@ describe('Consultas', () => {
     await waitFor(() => screen.getByText('Maria Silva'));
 
     const rows = screen.getAllByRole('row');
-    // 3 botões: nome do paciente (button), editar, deletar
-    const botoesLinha1 = within(rows[1]).getAllByRole('button');
-    expect(botoesLinha1).toHaveLength(3);
+    expect(within(rows[1]).getByRole('button', { name: 'Editar consulta de Maria Silva' })).toBeInTheDocument();
+    expect(within(rows[1]).getByRole('button', { name: 'Excluir consulta de Maria Silva' })).toBeInTheDocument();
   });
 
   it('MEDICO não deve ver o botão "Nova Consulta"', async () => {
@@ -149,6 +147,7 @@ describe('Consultas', () => {
 
     render(<Consultas />);
 
+    await screen.findByText('Maria Silva');
     expect(screen.queryByRole('button', { name: /nova consulta/i })).not.toBeInTheDocument();
   });
 
@@ -165,6 +164,7 @@ describe('Consultas', () => {
   it('deve abrir o modal ao clicar em "Nova Consulta"', async () => {
     render(<Consultas />);
 
+    await screen.findByText('Maria Silva');
     fireEvent.click(screen.getByRole('button', { name: /nova consulta/i }));
 
     expect(screen.getByTestId('nova-consulta-modal')).toBeInTheDocument();
@@ -175,10 +175,8 @@ describe('Consultas', () => {
 
     await waitFor(() => screen.getByText('Maria Silva'));
 
-    const rows = screen.getAllByRole('row');
-    // botoes[0]=nome paciente, botoes[1]=editar, botoes[2]=deletar
-    const botoes = within(rows[1]).getAllByRole('button');
-    fireEvent.click(botoes[2]);
+    fireEvent.click(screen.getByRole('button', { name: 'Excluir consulta de Maria Silva' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Remover' }));
 
     await waitFor(() => {
       expect(mockDeletar).toHaveBeenCalledWith(1);
@@ -186,15 +184,12 @@ describe('Consultas', () => {
   });
 
   it('não deve deletar quando o usuário cancela a confirmação', async () => {
-    confirmSpy.mockReturnValue(false);
-
     render(<Consultas />);
 
     await waitFor(() => screen.getByText('Maria Silva'));
 
-    const rows = screen.getAllByRole('row');
-    const botoes = within(rows[1]).getAllByRole('button');
-    fireEvent.click(botoes[2]);
+    fireEvent.click(screen.getByRole('button', { name: 'Excluir consulta de Maria Silva' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
 
     expect(mockDeletar).not.toHaveBeenCalled();
   });

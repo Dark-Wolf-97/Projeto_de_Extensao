@@ -11,7 +11,7 @@ import { FileText, Search } from "lucide-react";
 import { ProntuarioService, Prontuario } from "@/services/ProntuarioService";
 import { ProntuarioModal } from "@/components/modals/ProntuarioModal";
 import { Consulta } from "@/services/ConsultaService";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/sonner";
 
 const STATUS_LABEL: Record<string, string> = {
   AGENDADA: "Agendada",
@@ -29,11 +29,6 @@ const STATUS_CLASS: Record<string, string> = {
 
 function formatData(iso: string) {
   return new Date(iso.split("T")[0] + "T12:00:00").toLocaleDateString("pt-BR");
-}
-
-function truncate(text: string | undefined, max = 40) {
-  if (!text) return <span className="text-muted-foreground italic">—</span>;
-  return text.length > max ? text.slice(0, max) + "…" : text;
 }
 
 function prontuarioToConsulta(p: Prontuario): Consulta | null {
@@ -62,8 +57,8 @@ export default function Prontuarios() {
   const carregar = async () => {
     try {
       setLista(await ProntuarioService.listar());
-    } catch {
-      toast.error("Erro ao carregar prontuários");
+    } catch (err) {
+      toast.error(err);
     }
   };
 

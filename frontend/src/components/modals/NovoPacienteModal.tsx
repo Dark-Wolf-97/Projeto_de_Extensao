@@ -11,7 +11,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PacienteService, Paciente } from "@/services/PacienteService";
-import { toast } from "sonner";
+import { httpErrorMessage } from "@/services/http";
+import { toast } from "@/components/ui/sonner";
 
 function calcularDigito(digits: string, pesoInicial: number): number {
   let soma = 0;
@@ -124,11 +125,13 @@ export function NovoPacienteModal({ open, onOpenChange, onSaved, paciente }: Pro
       onSaved?.();
       onOpenChange(false);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "";
-      if (msg.includes("409")) {
+      const { status, detail } = httpErrorMessage(err);
+      if (status === "409") {
         toast.error("CPF já cadastrado para outro paciente");
+      } else if (status === "400" && detail) {
+        toast.error(detail);
       } else {
-        toast.error("Erro ao salvar paciente");
+        toast.error(err);
       }
     } finally {
       setSaving(false);
@@ -137,9 +140,9 @@ export function NovoPacienteModal({ open, onOpenChange, onSaved, paciente }: Pro
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[480px]">
-        <DialogHeader>
-          <DialogTitle className="text-primary">
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[720px]">
+        <DialogHeader className="border-b pb-4 pr-8">
+          <DialogTitle>
             {isEdit ? "Editar Paciente" : "Novo Paciente"}
           </DialogTitle>
           <DialogDescription>
@@ -147,14 +150,16 @@ export function NovoPacienteModal({ open, onOpenChange, onSaved, paciente }: Pro
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="grid gap-4 py-2">
-          <div className="grid gap-2">
+        <form onSubmit={handleSubmit} className="grid gap-5 py-1">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="grid gap-2 sm:col-span-2">
             <Label htmlFor="nome">Nome</Label>
             <Input
               id="nome"
               value={form.nome}
               onChange={(e) => set("nome", e.target.value.replace(/[^a-zA-ZÀ-ÿ\s]/g, ""))}
               placeholder="Nome completo"
+              autoComplete="name"
               required
               maxLength={100}
             />
@@ -167,6 +172,8 @@ export function NovoPacienteModal({ open, onOpenChange, onSaved, paciente }: Pro
               value={form.cpf}
               onChange={(e) => set("cpf", formatCpf(e.target.value))}
               placeholder="000.000.000-00"
+              inputMode="numeric"
+              autoComplete="off"
               required
               maxLength={14}
               className={cpfInvalido ? "border-destructive focus-visible:ring-destructive" : ""}
@@ -183,6 +190,8 @@ export function NovoPacienteModal({ open, onOpenChange, onSaved, paciente }: Pro
               value={form.telefone}
               onChange={(e) => set("telefone", formatTelefone(e.target.value))}
               placeholder="(11) 99999-9999"
+              inputMode="tel"
+              autoComplete="tel"
               required
               maxLength={16}
             />
@@ -199,8 +208,9 @@ export function NovoPacienteModal({ open, onOpenChange, onSaved, paciente }: Pro
               max={getDateLimits().max}
             />
           </div>
+          </div>
 
-          <DialogFooter>
+          <DialogFooter className="border-t pt-4">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>

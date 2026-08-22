@@ -15,7 +15,8 @@ import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { AlertTriangle, CalendarPlus, CheckCircle2, Edit, FileText, Search, Trash2, XCircle } from "lucide-react";
 import { MessageCircle } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import { toast } from "sonner";
+import { httpErrorMessage } from "@/services/http";
+import { toast } from "@/components/ui/sonner";
 
 const STATUS_LABEL: Record<string, string> = {
   AGENDADA: "Agendada",
@@ -83,8 +84,8 @@ export default function Consultas() {
   const carregar = async () => {
     try {
       setConsultas(await ConsultaService.listar());
-    } catch {
-      toast.error("Erro ao carregar consultas");
+    } catch (err) {
+      toast.error(err);
     }
   };
 
@@ -118,8 +119,8 @@ export default function Consultas() {
           await ConsultaService.realizar(c.id!);
           toast.success("Consulta marcada como Realizada");
           await carregar();
-        } catch {
-          toast.error("Erro ao atualizar consulta");
+        } catch (err) {
+          toast.error(err);
         }
       },
     });
@@ -136,8 +137,9 @@ export default function Consultas() {
           await ConsultaService.deletar(c.id!);
           toast.success("Consulta removida com sucesso!");
           await carregar();
-        } catch {
-          toast.error("Erro ao remover consulta");
+        } catch (err) {
+          const { detail } = httpErrorMessage(err);
+          toast.error(detail || err);
         }
       },
     });
@@ -285,14 +287,20 @@ export default function Consultas() {
                       {podeGerenciar && (
                         <TableCell>
                           <div className="flex gap-1.5 items-center">
-                            <Button variant="outline" size="icon" className="h-7 w-7" title="Editar" onClick={() => handleEditar(c)}>
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="h-7 w-7"
+                              aria-label={`Editar consulta de ${c.paciente?.nome ?? "paciente"}`}
+                              onClick={() => handleEditar(c)}
+                            >
                               <Edit className="h-3.5 w-3.5" />
                             </Button>
                             <Button
                               variant="outline"
                               size="icon"
                               className="h-7 w-7 text-destructive hover:text-destructive/90"
-                              title="Excluir"
+                              aria-label={`Excluir consulta de ${c.paciente?.nome ?? "paciente"}`}
                               onClick={() => handleDeletar(c)}
                             >
                               <Trash2 className="h-3.5 w-3.5" />

@@ -1,4 +1,9 @@
-import { Injectable, ConflictException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  ConflictException,
+  NotFoundException,
+} from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -21,11 +26,15 @@ export class UsersService {
   constructor(private prisma: PrismaService) {}
 
   async create(dto: CreateUserDto) {
-    const existe = await this.prisma.user.findUnique({ where: { email: dto.email } });
+    const existe = await this.prisma.user.findUnique({
+      where: { email: dto.email },
+    });
     if (existe) throw new ConflictException('E-mail já cadastrado');
 
     if (dto.crm) {
-      const crmExiste = await this.prisma.user.findUnique({ where: { crm: dto.crm } });
+      const crmExiste = await this.prisma.user.findUnique({
+        where: { crm: dto.crm },
+      });
       if (crmExiste) throw new ConflictException('CRM já cadastrado');
     }
 
@@ -69,7 +78,10 @@ export class UsersService {
   }
 
   async findOne(id: number) {
-    const user = await this.prisma.user.findUnique({ where: { id }, select: SELECT_SAFE });
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+      select: SELECT_SAFE,
+    });
     if (!user) throw new NotFoundException('Usuário não encontrado');
     return user;
   }
@@ -91,7 +103,7 @@ export class UsersService {
       if (crmExiste) throw new ConflictException('CRM já cadastrado');
     }
 
-    const data: any = {
+    const data: Prisma.UserUpdateInput = {
       nome: dto.nome,
       email: dto.email,
       role: dto.role,
@@ -118,6 +130,16 @@ export class UsersService {
 
   async remove(id: number) {
     await this.findOne(id);
+
+    const consultasVinculadas = await this.prisma.consulta.count({
+      where: { medicoId: id },
+    });
+    if (consultasVinculadas > 0) {
+      throw new ConflictException(
+        'Não é possível excluir o médico porque existem consultas vinculadas. Mantenha o usuário para preservar o histórico clínico; consultas futuras podem ser canceladas.',
+      );
+    }
+
     return this.prisma.user.delete({ where: { id } });
   }
 

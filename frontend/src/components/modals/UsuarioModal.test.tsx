@@ -2,7 +2,8 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { UsuarioModal } from './UsuarioModal';
 import { UsuarioService } from '@/services/UsuarioService';
-import { toast } from 'sonner';
+import type { Usuario } from '@/services/UsuarioService';
+import { toast } from '@/components/ui/sonner';
 
 vi.mock('@/services/UsuarioService', () => ({
   UsuarioService: {
@@ -11,7 +12,7 @@ vi.mock('@/services/UsuarioService', () => ({
   },
 }));
 
-vi.mock('sonner', () => ({
+vi.mock('@/components/ui/sonner', () => ({
   toast: {
     success: vi.fn(),
     error: vi.fn(),
@@ -23,7 +24,7 @@ const mockAtualizar = UsuarioService.atualizar as ReturnType<typeof vi.fn>;
 const mockOnOpenChange = vi.fn();
 const mockOnSaved = vi.fn();
 
-const renderModal = (usuario = null as any, open = true) =>
+const renderModal = (usuario: Usuario | null = null, open = true) =>
   render(
     <UsuarioModal
       open={open}
@@ -220,7 +221,7 @@ describe('UsuarioModal', () => {
       });
     });
 
-    it('deve mostrar erro genérico para outros erros', async () => {
+    it('deve encaminhar o erro retornado para a notificação', async () => {
       mockCriar.mockRejectedValue(new Error('Erro 500: Internal Server Error'));
 
       renderModal();
@@ -232,7 +233,9 @@ describe('UsuarioModal', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Salvar' }));
 
       await waitFor(() => {
-        expect(toast.error).toHaveBeenCalledWith('Erro ao salvar usuário');
+        expect(toast.error).toHaveBeenCalledWith(
+          expect.objectContaining({ message: 'Erro 500: Internal Server Error' }),
+        );
       });
     });
   });

@@ -10,7 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { UsuarioService } from "@/services/UsuarioService";
 import { useAuth } from "@/context/AuthContext";
 import { httpErrorMessage } from "@/services/http";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/sonner";
 import { Check, KeyRound, User, X } from "lucide-react";
 
 const ROLE_LABEL: Record<string, string> = {
@@ -83,7 +83,7 @@ export default function Configuracoes() {
           especialidade: u.especialidade ?? "",
         });
       })
-      .catch(() => toast.error("Erro ao carregar dados do perfil"));
+      .catch((err) => toast.error(err));
   }, []);
 
   const initials = dados.nome
@@ -108,7 +108,7 @@ export default function Configuracoes() {
       toast.success("Dados atualizados com sucesso!");
     } catch (err) {
       const { detail } = httpErrorMessage(err);
-      toast.error(detail || "Erro ao atualizar dados");
+      toast.error(detail || err);
     } finally {
       setSalvandoDados(false);
     }
@@ -131,7 +131,7 @@ export default function Configuracoes() {
       setSenha({ novaSenha: "", confirmar: "" });
     } catch (err) {
       const { detail } = httpErrorMessage(err);
-      toast.error(detail || "Erro ao alterar senha");
+      toast.error(detail || err);
     } finally {
       setSalvandoSenha(false);
     }

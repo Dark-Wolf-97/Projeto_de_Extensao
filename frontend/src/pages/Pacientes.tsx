@@ -12,7 +12,8 @@ import { Edit, Search, Trash2, UserRound } from "lucide-react";
 import { NovoPacienteModal } from "@/components/modals/NovoPacienteModal";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { useAuth } from "@/context/AuthContext";
-import { toast } from "sonner";
+import { httpErrorMessage } from "@/services/http";
+import { toast } from "@/components/ui/sonner";
 
 function formatData(iso?: string) {
   if (!iso) return "—";
@@ -34,8 +35,8 @@ export default function Pacientes() {
   const carregar = async () => {
     try {
       setPacientes(await PacienteService.listar());
-    } catch {
-      toast.error("Erro ao carregar pacientes");
+    } catch (err) {
+      toast.error(err);
     }
   };
 
@@ -45,8 +46,8 @@ export default function Pacientes() {
     if (!busca.trim()) return carregar();
     try {
       setPacientes(await PacienteService.buscar(busca));
-    } catch {
-      toast.error("Erro ao buscar pacientes");
+    } catch (err) {
+      toast.error(err);
     }
   };
 
@@ -61,8 +62,9 @@ export default function Pacientes() {
           await PacienteService.deletar(p.id!);
           toast.success("Paciente removido com sucesso!");
           await carregar();
-        } catch {
-          toast.error("Erro ao remover paciente");
+        } catch (err) {
+          const { detail } = httpErrorMessage(err);
+          toast.error(detail || err);
         }
       },
     });
@@ -153,6 +155,7 @@ export default function Pacientes() {
                               variant="outline"
                               size="sm"
                               onClick={() => handleDeletar(p)}
+                              aria-label={`Excluir paciente ${p.nome}`}
                               className="text-destructive hover:text-destructive/90"
                             >
                               <Trash2 className="h-4 w-4" />

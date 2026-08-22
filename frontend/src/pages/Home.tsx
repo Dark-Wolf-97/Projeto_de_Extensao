@@ -21,7 +21,7 @@ import { PacienteService } from "@/services/PacienteService";
 import { NovaConsultaModal } from "@/components/modals/NovaConsultaModal";
 import { ProntuarioModal } from "@/components/modals/ProntuarioModal";
 import { useAuth } from "@/context/AuthContext";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/sonner";
 
 // ─── Helpers compartilhados ───────────────────────────────────────────────────
 
@@ -86,7 +86,7 @@ function HomeAdmin() {
         setConsultas(cons);
         setTotalPacientes(pacs.length);
       })
-      .catch(() => toast.error("Erro ao carregar dados do dashboard"));
+      .catch((err) => toast.error(err));
   }, []);
 
   const hoje = new Date();
@@ -389,8 +389,8 @@ function HomeMedico() {
       const todas = await ConsultaService.listar();
       setTodasConsultas(todas);
       setConsultas(todas.filter((c) => c.data?.slice(0, 10) === hoje));
-    } catch {
-      toast.error("Erro ao carregar consultas");
+    } catch (err) {
+      toast.error(err);
     }
   };
 
@@ -401,8 +401,8 @@ function HomeMedico() {
       await ConsultaService.realizar(c.id!);
       toast.success("Consulta marcada como Realizada");
       await carregar();
-    } catch {
-      toast.error("Erro ao atualizar consulta");
+    } catch (err) {
+      toast.error(err);
     }
   };
 

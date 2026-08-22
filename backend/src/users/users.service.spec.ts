@@ -18,6 +18,9 @@ const mockPrisma = {
     update: jest.fn(),
     delete: jest.fn(),
   },
+  consulta: {
+    count: jest.fn(),
+  },
 };
 
 const mockAdmin = {
@@ -56,6 +59,7 @@ describe('UsersService', () => {
     }).compile();
 
     service = module.get<UsersService>(UsersService);
+    mockPrisma.consulta.count.mockResolvedValue(0);
   });
 
   afterEach(() => jest.clearAllMocks());
@@ -81,7 +85,9 @@ describe('UsersService', () => {
 
       expect(bcryptHash).toHaveBeenCalledWith('admin123', 10);
       expect(mockPrisma.user.create).toHaveBeenCalledWith(
-        expect.objectContaining({ data: expect.objectContaining({ senha: 'hashed_senha' }) }),
+        expect.objectContaining({
+          data: expect.objectContaining({ senha: 'hashed_senha' }),
+        }),
       );
       expect(result).toEqual(mockAdmin);
     });
@@ -165,7 +171,10 @@ describe('UsersService', () => {
     it('deve atualizar usuário sem alterar senha quando não fornecida', async () => {
       mockPrisma.user.findUnique.mockResolvedValue(mockAdmin);
       mockPrisma.user.findFirst.mockResolvedValue(null);
-      mockPrisma.user.update.mockResolvedValue({ ...mockAdmin, telefone: '(11) 88888-0000' });
+      mockPrisma.user.update.mockResolvedValue({
+        ...mockAdmin,
+        telefone: '(11) 88888-0000',
+      });
 
       await service.update(1, { telefone: '(11) 88888-0000' });
 
@@ -196,7 +205,9 @@ describe('UsersService', () => {
     it('deve lançar NotFoundException quando usuário não existe', async () => {
       mockPrisma.user.findUnique.mockResolvedValue(null);
 
-      await expect(service.update(999, { nome: 'Qualquer' })).rejects.toThrow(NotFoundException);
+      await expect(service.update(999, { nome: 'Qualquer' })).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -208,6 +219,14 @@ describe('UsersService', () => {
       await service.remove(1);
 
       expect(mockPrisma.user.delete).toHaveBeenCalledWith({ where: { id: 1 } });
+    });
+
+    it('deve lançar ConflictException quando médico possui consultas', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue(mockMedico);
+      mockPrisma.consulta.count.mockResolvedValue(2);
+
+      await expect(service.remove(2)).rejects.toThrow(ConflictException);
+      expect(mockPrisma.user.delete).not.toHaveBeenCalled();
     });
 
     it('deve lançar NotFoundException quando usuário não existe', async () => {

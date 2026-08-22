@@ -8,8 +8,8 @@ RUN npm ci
 
 COPY . .
 
-# VITE_API_URL é injetada em tempo de build (baked no bundle)
-ARG VITE_API_URL=http://localhost:3000
+# O navegador usa mesma origem; o Nginx encaminha /api para o backend.
+ARG VITE_API_URL=/api
 ENV VITE_API_URL=$VITE_API_URL
 
 RUN npm run build
