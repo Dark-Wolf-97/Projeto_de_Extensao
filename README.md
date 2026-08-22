@@ -23,11 +23,15 @@ JavaScript entregue ao navegador.
 `CORS_ORIGIN` só é necessário se a API for publicada e acessada diretamente por
 outra origem. Quando configurado, aceita uma lista de origens separadas por vírgula.
 
-## Bootstrap do primeiro administrador
+## Seed dos usuários iniciais (ADMIN, SECRETARIA, MEDICO)
 
-O bootstrap não possui senha padrão, usa bcrypt e não altera a senha de um
-administrador existente. Ele exige uma senha de 12 a 72 bytes com letra maiúscula,
-letra minúscula, número e caractere especial.
+O seed não possui senha padrão, usa bcrypt e não altera a senha de um usuário já
+existente. Cada perfil (`ADMIN_*`, `SECRETARIA_*`, `MEDICO_*`) é opcional e
+independente: se as variáveis de um perfil ficarem todas em branco, aquele
+usuário simplesmente não é criado; se ficarem parcialmente preenchidas, o
+comando falha avisando qual variável está faltando. A senha de cada perfil
+exige de 12 a 72 bytes. O perfil `MEDICO` também exige `MEDICO_CRM` e
+`MEDICO_ESPECIALIDADE`.
 
 Para desenvolvimento, crie um arquivo `backend/.env` não versionado com:
 
@@ -36,6 +40,16 @@ DATABASE_URL=mysql://usuario:senha@localhost:3306/clinica_db
 ADMIN_NOME=Nome do Administrador
 ADMIN_EMAIL=administrador@exemplo.com
 ADMIN_PASSWORD=
+
+SECRETARIA_NOME=Nome da Secretaria
+SECRETARIA_EMAIL=secretaria@exemplo.com
+SECRETARIA_PASSWORD=
+
+MEDICO_NOME=Nome do Medico
+MEDICO_EMAIL=medico@exemplo.com
+MEDICO_PASSWORD=
+MEDICO_CRM=12345-SP
+MEDICO_ESPECIALIDADE=Clinico Geral
 ```
 
 Depois execute:
@@ -43,19 +57,19 @@ Depois execute:
 ```bash
 cd backend
 npm ci
-npm run bootstrap:admin
+npm run seed
 ```
 
-Com os containers em execução, preencha temporariamente `ADMIN_NOME`,
-`ADMIN_EMAIL` e `ADMIN_PASSWORD` no `.env` da raiz e execute:
+Com os containers em execução, preencha temporariamente as variáveis dos
+perfis desejados no `.env` da raiz e execute:
 
 ```bash
-docker compose exec backend node dist/src/bootstrap-admin.js
+docker compose exec backend node dist/src/seed.js
 ```
 
-Após o cadastro, remova as três variáveis `ADMIN_*` do `.env` e recrie o container
-do backend para que a senha deixe de existir no ambiente do processo. Executar o
-comando novamente não duplica o usuário nem redefine a senha.
+Após o cadastro, remova as variáveis preenchidas do `.env` e recrie o container
+do backend para que as senhas deixem de existir no ambiente do processo.
+Executar o comando novamente não duplica os usuários nem redefine senhas.
 
 ## Validação
 
