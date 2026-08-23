@@ -190,7 +190,7 @@ export function ProntuarioModal({ open, onOpenChange, consulta, onSaved }: Props
             Carregando prontuário...
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="grid gap-5 py-1">
+          <form onSubmit={handleSubmit} autoComplete="off" className="grid gap-5 py-1">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="grid gap-2">
               <Label htmlFor="anamnese">Anamnese</Label>

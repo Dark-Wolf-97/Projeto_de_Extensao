@@ -34,8 +34,8 @@ export class ProntuariosService {
   }
 
   async create(dto: CreateProntuarioDto, user: AuthenticatedUser) {
-    if (user.role !== Role.MEDICO) {
-      throw new ForbiddenException('Apenas médicos podem criar prontuários');
+    if (user.role !== Role.ADMIN && user.role !== Role.MEDICO) {
+      throw new ForbiddenException('Acesso ao prontuário não autorizado');
     }
 
     const consulta = await this.prisma.consulta.findUnique({

@@ -4,9 +4,10 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { StatusConsulta } from '@prisma/client';
+import { Role, StatusConsulta } from '@prisma/client';
 import { ConsultasService } from './consultas.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { GoogleCalendarService } from '../google-calendar/google-calendar.service';
 
 const AMANHA = new Date();
 AMANHA.setDate(AMANHA.getDate() + 1);
@@ -48,6 +49,13 @@ const mockPrisma = {
   },
 };
 
+const mockGoogleCalendar = {
+  sincronizarSemInterromperPortal: jest.fn(),
+  removerEventoSemInterromperPortal: jest.fn(),
+  cadastrarOuRecadastrar: jest.fn(),
+  buscarLinkAgenda: jest.fn(),
+};
+
 describe('ConsultasService', () => {
   let service: ConsultasService;
 
@@ -56,6 +64,7 @@ describe('ConsultasService', () => {
       providers: [
         ConsultasService,
         { provide: PrismaService, useValue: mockPrisma },
+        { provide: GoogleCalendarService, useValue: mockGoogleCalendar },
       ],
     }).compile();
 
@@ -66,6 +75,22 @@ describe('ConsultasService', () => {
 
   it('deve estar definido', () => {
     expect(service).toBeDefined();
+  });
+
+  it('deve sincronizar a agenda sem interromper a criação da consulta', async () => {
+    mockPrisma.consulta.findFirst.mockResolvedValue(null);
+    mockPrisma.consulta.create.mockResolvedValue(mockConsulta);
+
+    await service.create({
+      pacienteId: 1,
+      medicoId: 2,
+      data: DATA_FUTURA,
+      hora: HORA,
+    });
+
+    expect(
+      mockGoogleCalendar.sincronizarSemInterromperPortal,
+    ).toHaveBeenCalledWith(mockConsulta.id);
   });
 
   // ─── findAll ───────────────────────────────────────────────────────────────
@@ -227,6 +252,44 @@ describe('ConsultasService', () => {
       await expect(
         service.update(1, { hora: '14:00', data: DATA_FUTURA }),
       ).rejects.toThrow(ConflictException);
+    });
+  });
+
+  // ─── realizar ──────────────────────────────────────────────────────────────
+
+  describe('realizar()', () => {
+    it('deve permitir que ADMIN marque como realizada uma consulta de qualquer médico', async () => {
+      mockPrisma.consulta.findUnique.mockResolvedValue(mockConsulta);
+      mockPrisma.consulta.update.mockResolvedValue({
+        ...mockConsulta,
+        status: StatusConsulta.REALIZADA,
+      });
+
+      await service.realizar(1, {
+        id: 1,
+        email: 'admin@clinica.test',
+        role: Role.ADMIN,
+      });
+
+      expect(mockPrisma.consulta.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: { status: StatusConsulta.REALIZADA },
+        }),
+      );
+    });
+
+    it('deve negar que médico marque consulta de outro profissional como realizada', async () => {
+      mockPrisma.consulta.findUnique.mockResolvedValue(mockConsulta);
+
+      await expect(
+        service.realizar(1, {
+          id: 3,
+          email: 'outro-medico@clinica.test',
+          role: Role.MEDICO,
+        }),
+      ).rejects.toThrow('Você só pode atualizar suas próprias consultas');
+
+      expect(mockPrisma.consulta.update).not.toHaveBeenCalled();
     });
   });
 

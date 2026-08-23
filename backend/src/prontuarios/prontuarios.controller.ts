@@ -24,7 +24,7 @@ export class ProntuariosController {
   constructor(private readonly service: ProntuariosService) {}
 
   @Post()
-  @Roles(Role.MEDICO)
+  @Roles(Role.ADMIN, Role.MEDICO)
   create(
     @Body() dto: CreateProntuarioDto,
     @Request() req: AuthenticatedRequest,

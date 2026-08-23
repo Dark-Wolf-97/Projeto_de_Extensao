@@ -3,6 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { StatusConsulta, Role } from '@prisma/client';
 import { ConsultasController } from './consultas.controller';
 import { ConsultasService } from './consultas.service';
+import { ROLES_KEY } from '../auth/decorators/roles.decorator';
 
 const mockConsulta = {
   id: 1,
@@ -13,7 +14,12 @@ const mockConsulta = {
   status: StatusConsulta.AGENDADA,
   observacoes: null,
   paciente: { id: 1, nome: 'Maria Silva', cpf: '123.456.789-00' },
-  medico: { id: 2, nome: 'Dr. Carlos', crm: 'CRM-SP-1234', especialidade: 'Clínica Geral' },
+  medico: {
+    id: 2,
+    nome: 'Dr. Carlos',
+    crm: 'CRM-SP-1234',
+    especialidade: 'Clínica Geral',
+  },
 };
 
 const mockConsultaMedico = { ...mockConsulta, id: 2 };
@@ -27,6 +33,9 @@ describe('ConsultasController', () => {
     create: jest.Mock;
     update: jest.Mock;
     remove: jest.Mock;
+    realizar: jest.Mock;
+    recadastrarNaAgenda: jest.Mock;
+    buscarLinkAgenda: jest.Mock;
   };
 
   beforeEach(async () => {
@@ -36,12 +45,21 @@ describe('ConsultasController', () => {
         {
           provide: ConsultasService,
           useValue: {
-            findAll: jest.fn().mockResolvedValue([mockConsulta, mockConsultaMedico]),
+            findAll: jest
+              .fn()
+              .mockResolvedValue([mockConsulta, mockConsultaMedico]),
             findByMedico: jest.fn().mockResolvedValue([mockConsulta]),
             findOne: jest.fn().mockResolvedValue(mockConsulta),
             create: jest.fn().mockResolvedValue(mockConsulta),
             update: jest.fn().mockResolvedValue(mockConsulta),
             remove: jest.fn().mockResolvedValue(mockConsulta),
+            realizar: jest.fn().mockResolvedValue(mockConsulta),
+            recadastrarNaAgenda: jest.fn().mockResolvedValue(mockConsulta),
+            buscarLinkAgenda: jest
+              .fn()
+              .mockReturnValue({
+                link: 'https://calendar.google.com/calendar',
+              }),
           },
         },
       ],
@@ -55,6 +73,39 @@ describe('ConsultasController', () => {
 
   it('deve estar definido', () => {
     expect(controller).toBeDefined();
+  });
+
+  it('deve limitar os endpoints do Google Agenda a ADMIN e SECRETARIA', () => {
+    for (const method of ['recadastrarNaAgenda', 'buscarLinkAgenda'] as const) {
+      const roles = Reflect.getMetadata(
+        ROLES_KEY,
+        ConsultasController.prototype[method],
+      );
+      expect(roles).toEqual([Role.ADMIN, Role.SECRETARIA]);
+      expect(roles).not.toContain(Role.MEDICO);
+    }
+  });
+
+  it('deve encaminhar cadastro e link do Google Agenda ao service', async () => {
+    await controller.recadastrarNaAgenda('1');
+    const link = controller.buscarLinkAgenda();
+
+    expect(service.recadastrarNaAgenda).toHaveBeenCalledWith(1);
+    expect(service.buscarLinkAgenda).toHaveBeenCalled();
+    expect(link).toEqual({ link: 'https://calendar.google.com/calendar' });
+  });
+
+  it('deve permitir ADMIN e MEDICO marcarem consultas como realizadas', async () => {
+    const roles = Reflect.getMetadata(
+      ROLES_KEY,
+      ConsultasController.prototype.realizar,
+    );
+    const req = { user: { id: 1, email: 'admin@clinica.test', role: Role.ADMIN } };
+
+    await controller.realizar('1', req);
+
+    expect(roles).toEqual([Role.ADMIN, Role.MEDICO]);
+    expect(service.realizar).toHaveBeenCalledWith(1, req.user);
   });
 
   // ─── findAll ───────────────────────────────────────────────────────────────
@@ -103,7 +154,9 @@ describe('ConsultasController', () => {
     it('deve propagar NotFoundException do service', async () => {
       service.findOne.mockRejectedValue(new NotFoundException());
 
-      await expect(controller.findOne('999')).rejects.toThrow(NotFoundException);
+      await expect(controller.findOne('999')).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -111,7 +164,12 @@ describe('ConsultasController', () => {
 
   describe('create()', () => {
     it('deve criar consulta e retornar o resultado', async () => {
-      const dto = { pacienteId: 1, medicoId: 2, data: '2027-01-15', hora: '10:00' };
+      const dto = {
+        pacienteId: 1,
+        medicoId: 2,
+        data: '2027-01-15',
+        hora: '10:00',
+      };
 
       const result = await controller.create(dto as any);
 
@@ -134,7 +192,9 @@ describe('ConsultasController', () => {
     it('deve propagar NotFoundException do service', async () => {
       service.update.mockRejectedValue(new NotFoundException());
 
-      await expect(controller.update('999', {} as any)).rejects.toThrow(NotFoundException);
+      await expect(controller.update('999', {} as any)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 

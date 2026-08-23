@@ -55,17 +55,21 @@ model Paciente {
 }
 
 model Consulta {
-  id          Int            @id @default(autoincrement())
-  pacienteId  Int
-  paciente    Paciente       @relation(fields: [pacienteId], references: [id])
-  medicoId    Int
-  medico      User           @relation(fields: [medicoId], references: [id])
-  data        DateTime
-  hora        String         @db.VarChar(5)
-  status      StatusConsulta @default(AGENDADA)
-  observacoes String?        @db.Text
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  id                      Int            @id @default(autoincrement())
+  pacienteId              Int
+  paciente                Paciente       @relation(fields: [pacienteId], references: [id])
+  medicoId                Int
+  medico                  User           @relation(fields: [medicoId], references: [id])
+  data                    DateTime
+  hora                    String         @db.VarChar(5)
+  status                  StatusConsulta @default(AGENDADA)
+  observacoes             String?        @db.Text
+  googleCalendarEventId   String?        @db.VarChar(255)
+  googleCalendarEventLink String?        @db.Text
+  googleCalendarSyncedAt  DateTime?
+  googleCalendarLastError String?        @db.Text
+  createdAt               DateTime       @default(now())
+  updatedAt               DateTime       @updatedAt
 
   prontuario Prontuario?
 

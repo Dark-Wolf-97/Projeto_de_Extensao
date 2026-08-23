@@ -37,6 +37,16 @@ function formatTelefone(value: string): string {
   return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
 }
 
+function formatCrm(value: string): string {
+  const withoutPrefix = value.toUpperCase().replace(/^CRM[-\s]?/, "");
+  const sanitized = withoutPrefix.replace(/[^A-Z0-9]/g, "");
+  const uf = sanitized.slice(0, 2).replace(/[^A-Z]/g, "");
+  const numero = sanitized.slice(2).replace(/\D/g, "").slice(0, 6);
+
+  if (uf.length < 2) return sanitized.slice(0, 2);
+  return `CRM-${uf}${numero ? `-${numero}` : ""}`;
+}
+
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -142,6 +152,15 @@ export function UsuarioModal({ open, onOpenChange, onSaved, usuario }: Props) {
   };
 
   const isMedico = form.role === "MEDICO";
+  const senhaValida = !form.senha || SENHA_REQUISITOS.every((requisito) => requisito.ok(form.senha!));
+  const emailValido = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email);
+  const crmValido = /^CRM-[A-Z]{2}-\d{4,6}$/.test(form.crm ?? "");
+  const camposObrigatoriosPreenchidos =
+    Boolean(form.nome.trim()) &&
+    emailValido &&
+    (Boolean(usuario) || Boolean(form.senha)) &&
+    (!isMedico || (crmValido && Boolean(form.especialidade?.trim())));
+  const canSubmit = camposObrigatoriosPreenchidos && senhaValida;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -155,37 +174,36 @@ export function UsuarioModal({ open, onOpenChange, onSaved, usuario }: Props) {
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="grid gap-5 py-1">
+        <form onSubmit={handleSubmit} autoComplete="off" className="grid gap-5 py-1">
+          <p className="text-xs text-muted-foreground"><span className="text-destructive" aria-hidden="true">*</span> Campos obrigatórios</p>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="grid gap-2">
-            <Label htmlFor="nome">Nome</Label>
+            <Label htmlFor="nome" className="after:ml-1 after:text-destructive after:content-['*']">Nome</Label>
             <Input
               id="nome"
               value={form.nome}
               onChange={(e) => set("nome", e.target.value.replace(/[^a-zA-ZÀ-ÿ\s]/g, ""))}
               placeholder="Nome completo"
-              autoComplete="name"
               required
               maxLength={100}
             />
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="email">E-mail</Label>
+            <Label htmlFor="email" className="after:ml-1 after:text-destructive after:content-['*']">E-mail</Label>
             <Input
               id="email"
               type="email"
               value={form.email}
               onChange={(e) => set("email", e.target.value)}
               placeholder="email@exemplo.com"
-              autoComplete="email"
               required
               maxLength={150}
             />
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="senha">
+            <Label htmlFor="senha" className={usuario ? undefined : "after:ml-1 after:text-destructive after:content-['*']"}>
               {usuario ? "Nova senha (deixe vazio para manter)" : "Senha"}
             </Label>
             <Input
@@ -194,7 +212,6 @@ export function UsuarioModal({ open, onOpenChange, onSaved, usuario }: Props) {
               value={form.senha ?? ""}
               onChange={(e) => set("senha", e.target.value)}
               placeholder={usuario ? "••••••••" : "Mínimo 6 caracteres"}
-              autoComplete="new-password"
             />
             {form.senha && (
               <ul className="grid grid-cols-2 gap-1 mt-1">
@@ -235,7 +252,6 @@ export function UsuarioModal({ open, onOpenChange, onSaved, usuario }: Props) {
               onChange={(e) => set("telefone", formatTelefone(e.target.value))}
               placeholder="(11) 99999-9999"
               inputMode="tel"
-              autoComplete="tel"
               maxLength={16}
             />
           </div>
@@ -243,11 +259,11 @@ export function UsuarioModal({ open, onOpenChange, onSaved, usuario }: Props) {
           {isMedico && (
             <>
               <div className="grid gap-2">
-                <Label htmlFor="crm">CRM</Label>
+                <Label htmlFor="crm" className="after:ml-1 after:text-destructive after:content-['*']">CRM</Label>
                 <Input
                   id="crm"
                   value={form.crm ?? ""}
-                  onChange={(e) => set("crm", e.target.value)}
+                  onChange={(e) => set("crm", formatCrm(e.target.value))}
                   placeholder="CRM-SP-12345"
                   maxLength={20}
                   required
@@ -255,7 +271,7 @@ export function UsuarioModal({ open, onOpenChange, onSaved, usuario }: Props) {
               </div>
 
               <div className="grid gap-2">
-                <Label htmlFor="especialidade">Especialidade</Label>
+                <Label htmlFor="especialidade" className="after:ml-1 after:text-destructive after:content-['*']">Especialidade</Label>
                 <Input
                   id="especialidade"
                   value={form.especialidade ?? ""}
@@ -273,7 +289,7 @@ export function UsuarioModal({ open, onOpenChange, onSaved, usuario }: Props) {
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={saving}>
+            <Button type="submit" disabled={saving || !canSubmit}>
               {saving ? "Salvando..." : "Salvar"}
             </Button>
           </DialogFooter>

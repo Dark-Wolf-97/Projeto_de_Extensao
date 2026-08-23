@@ -49,7 +49,7 @@ describe('ProntuariosController', () => {
   it('deve restringir todos os endpoints clínicos, sem permitir SECRETARIA', () => {
     expect(
       Reflect.getMetadata(ROLES_KEY, ProntuariosController.prototype.create),
-    ).toEqual([Role.MEDICO]);
+    ).toEqual([Role.ADMIN, Role.MEDICO]);
 
     for (const method of [
       'findAll',

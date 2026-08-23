@@ -5,8 +5,10 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { StatusConsulta } from '@prisma/client';
+import { Role, StatusConsulta } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { GoogleCalendarService } from '../google-calendar/google-calendar.service';
+import { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
 import { CreateConsultaDto } from './dto/create-consulta.dto';
 import { UpdateConsultaDto } from './dto/update-consulta.dto';
 
@@ -18,7 +20,10 @@ const INCLUDE_CONSULTA = {
 
 @Injectable()
 export class ConsultasService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly googleCalendar: GoogleCalendarService,
+  ) {}
 
   findAll() {
     return this.prisma.consulta.findMany({
@@ -97,7 +102,7 @@ export class ConsultasService {
     this.validateFutureDateTime(dto.data, dto.hora);
     await this.checkConflicts(dto.pacienteId, dto.medicoId, dto.data, dto.hora);
 
-    return this.prisma.consulta.create({
+    const consulta = await this.prisma.consulta.create({
       data: {
         pacienteId: dto.pacienteId,
         medicoId: dto.medicoId,
@@ -108,6 +113,9 @@ export class ConsultasService {
       },
       include: INCLUDE_CONSULTA,
     });
+
+    await this.googleCalendar.sincronizarSemInterromperPortal(consulta.id);
+    return consulta;
   }
 
   async update(id: number, dto: UpdateConsultaDto) {
@@ -124,7 +132,7 @@ export class ConsultasService {
 
     await this.checkConflicts(pacienteId, medicoId, data, hora, id);
 
-    return this.prisma.consulta.update({
+    const consulta = await this.prisma.consulta.update({
       where: { id },
       data: {
         ...(dto.pacienteId && { pacienteId: dto.pacienteId }),
@@ -136,38 +144,47 @@ export class ConsultasService {
       },
       include: INCLUDE_CONSULTA,
     });
+
+    await this.googleCalendar.sincronizarSemInterromperPortal(consulta.id);
+    return consulta;
   }
 
-  async realizar(id: number, medicoId: number) {
+  async realizar(id: number, user: AuthenticatedUser) {
     const consulta = await this.findOne(id);
-    if (consulta.medicoId !== medicoId) {
+    if (user.role !== Role.ADMIN && consulta.medicoId !== user.id) {
       throw new ForbiddenException(
         'Você só pode atualizar suas próprias consultas',
       );
     }
-    return this.prisma.consulta.update({
+    const atualizada = await this.prisma.consulta.update({
       where: { id },
       data: { status: StatusConsulta.REALIZADA },
       include: INCLUDE_CONSULTA,
     });
+    await this.googleCalendar.sincronizarSemInterromperPortal(atualizada.id);
+    return atualizada;
   }
 
   async confirmar(id: number) {
     await this.findOne(id);
-    return this.prisma.consulta.update({
+    const atualizada = await this.prisma.consulta.update({
       where: { id },
       data: { status: StatusConsulta.CONFIRMADA },
       include: INCLUDE_CONSULTA,
     });
+    await this.googleCalendar.sincronizarSemInterromperPortal(atualizada.id);
+    return atualizada;
   }
 
   async cancelar(id: number) {
     await this.findOne(id);
-    return this.prisma.consulta.update({
+    const atualizada = await this.prisma.consulta.update({
       where: { id },
       data: { status: StatusConsulta.CANCELADA },
       include: INCLUDE_CONSULTA,
     });
+    await this.googleCalendar.sincronizarSemInterromperPortal(atualizada.id);
+    return atualizada;
   }
 
   async remove(id: number) {
@@ -177,6 +194,18 @@ export class ConsultasService {
         'Não é possível excluir a consulta porque ela possui prontuário. Mantenha a consulta para preservar o histórico clínico.',
       );
     }
-    return this.prisma.consulta.delete({ where: { id } });
+    const removida = await this.prisma.consulta.delete({ where: { id } });
+    await this.googleCalendar.removerEventoSemInterromperPortal(
+      consulta.googleCalendarEventId,
+    );
+    return removida;
+  }
+
+  recadastrarNaAgenda(id: number) {
+    return this.googleCalendar.cadastrarOuRecadastrar(id);
+  }
+
+  buscarLinkAgenda() {
+    return this.googleCalendar.buscarLinkAgenda();
   }
 }

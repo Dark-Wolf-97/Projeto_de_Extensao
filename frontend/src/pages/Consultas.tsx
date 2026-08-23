@@ -1,10 +1,8 @@
-import { useEffect, useState } from "react";
+import { type ComponentProps, type ReactNode, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { PageShell } from "@/components/layout/PageShell";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,11 +10,24 @@ import { ConsultaService, Consulta } from "@/services/ConsultaService";
 import { NovaConsultaModal } from "@/components/modals/NovaConsultaModal";
 import { ProntuarioModal } from "@/components/modals/ProntuarioModal";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
-import { AlertTriangle, CalendarPlus, CheckCircle2, Edit, FileText, Search, Trash2, XCircle } from "lucide-react";
-import { MessageCircle } from "lucide-react";
+import {
+  AlertTriangle,
+  CalendarDays,
+  CalendarPlus,
+  CheckCircle2,
+  Edit,
+  ExternalLink,
+  FileText,
+  LoaderCircle,
+  MessageCircle,
+  Search,
+  Trash2,
+  XCircle,
+} from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { httpErrorMessage } from "@/services/http";
 import { toast } from "@/components/ui/sonner";
+import { cn } from "@/lib/utils";
 
 const STATUS_LABEL: Record<string, string> = {
   AGENDADA: "Agendada",
@@ -50,7 +61,10 @@ type IndicadorInfo = { cor: string; titulo: string };
 
 function getIndicador(c: Consulta): IndicadorInfo {
   if (c.status !== "REALIZADA") {
-    return { cor: "bg-white border border-gray-300", titulo: "Consulta não realizada" };
+    return {
+      cor: "bg-white border border-gray-300",
+      titulo: "Consulta não realizada",
+    };
   }
   if (c.prontuario?.id) {
     return { cor: "bg-green-500", titulo: "Prontuário registrado" };
@@ -60,6 +74,31 @@ function getIndicador(c: Consulta): IndicadorInfo {
     return { cor: "bg-red-500", titulo: "Prontuário pendente há mais de 24h" };
   }
   return { cor: "bg-yellow-400", titulo: "Prontuário pendente" };
+}
+
+type AcaoConsultaButtonProps = Omit<ComponentProps<typeof Button>, "size" | "title"> & {
+  label: string;
+  children: ReactNode;
+};
+
+function AcaoConsultaButton({ label, children, className, ...props }: AcaoConsultaButtonProps) {
+  return (
+    <Button
+      {...props}
+      size="icon"
+      title={label}
+      aria-label={props["aria-label"] ?? label}
+      className={cn(
+        "group h-7 w-7 justify-start overflow-hidden px-1.5 transition-[width,padding] duration-200 hover:w-64 hover:px-2 focus-visible:w-64 focus-visible:px-2",
+        className,
+      )}
+    >
+      <span className="shrink-0">{children}</span>
+      <span className="ml-0 max-w-0 overflow-hidden whitespace-nowrap text-xs opacity-0 transition-[max-width,margin,opacity] duration-200 group-hover:ml-1.5 group-hover:max-w-52 group-hover:opacity-100 group-focus-visible:ml-1.5 group-focus-visible:max-w-52 group-focus-visible:opacity-100">
+        {label}
+      </span>
+    </Button>
+  );
 }
 
 export default function Consultas() {
@@ -76,10 +115,15 @@ export default function Consultas() {
   const [prontuarioOpen, setProntuarioOpen] = useState(false);
   const [consultaProntuario, setConsultaProntuario] = useState<Consulta | null>(null);
   const [confirmar, setConfirmar] = useState<{
-    titulo: string; descricao: string; labelConfirmar: string;
-    variante?: "destructive" | "default"; acao: () => Promise<void>;
+    titulo: string;
+    descricao: string;
+    labelConfirmar: string;
+    variante?: "destructive" | "default";
+    acao: () => Promise<void>;
   } | null>(null);
   const [executando, setExecutando] = useState(false);
+  const [sincronizandoId, setSincronizandoId] = useState<number | null>(null);
+  const [abrindoAgenda, setAbrindoAgenda] = useState(false);
 
   const carregar = async () => {
     try {
@@ -89,7 +133,9 @@ export default function Consultas() {
     }
   };
 
-  useEffect(() => { carregar(); }, []);
+  useEffect(() => {
+    carregar();
+  }, []);
 
   const consultasFiltradas = consultas.filter((c) => {
     const nomeOk = !busca || (c.paciente?.nome ?? "").toLowerCase().includes(busca.toLowerCase());
@@ -97,15 +143,28 @@ export default function Consultas() {
     return nomeOk && dataOk;
   });
 
-  const handleNova = () => { setSelecionada(null); setOpen(true); };
-  const handleEditar = (c: Consulta) => { setSelecionada(c); setOpen(true); };
-  const handleProntuario = (c: Consulta) => { setConsultaProntuario(c); setProntuarioOpen(true); };
+  const handleNova = () => {
+    setSelecionada(null);
+    setOpen(true);
+  };
+  const handleEditar = (c: Consulta) => {
+    setSelecionada(c);
+    setOpen(true);
+  };
+  const handleProntuario = (c: Consulta) => {
+    setConsultaProntuario(c);
+    setProntuarioOpen(true);
+  };
 
   const executarConfirmado = async () => {
     if (!confirmar) return;
     setExecutando(true);
-    try { await confirmar.acao(); }
-    finally { setExecutando(false); setConfirmar(null); }
+    try {
+      await confirmar.acao();
+    } finally {
+      setExecutando(false);
+      setConfirmar(null);
+    }
   };
 
   const handleRealizar = (c: Consulta) => {
@@ -145,9 +204,35 @@ export default function Consultas() {
     });
   };
 
-  const qtdVermelhas = medicoView
-    ? consultas.filter((c) => getIndicador(c).cor === "bg-red-500").length
-    : 0;
+  const handleAbrirAgenda = async () => {
+    setAbrindoAgenda(true);
+    try {
+      const { link } = await ConsultaService.buscarLinkAgenda();
+      window.open(link, "_blank", "noopener,noreferrer");
+    } catch (err) {
+      const { detail } = httpErrorMessage(err);
+      toast.error(detail || "Não foi possível abrir o Google Agenda.");
+    } finally {
+      setAbrindoAgenda(false);
+    }
+  };
+
+  const handleRecadastrarNaAgenda = async (c: Consulta) => {
+    if (!c.id) return;
+    setSincronizandoId(c.id);
+    try {
+      const atualizada = await ConsultaService.recadastrarNaAgenda(c.id);
+      setConsultas((atuais) => atuais.map((item) => (item.id === atualizada.id ? atualizada : item)));
+      toast.success("Consulta cadastrada no Google Agenda!");
+    } catch (err) {
+      const { detail } = httpErrorMessage(err);
+      toast.error(detail || "Não foi possível cadastrar a consulta no Google Agenda.");
+    } finally {
+      setSincronizandoId(null);
+    }
+  };
+
+  const qtdVermelhas = medicoView ? consultas.filter((c) => getIndicador(c).cor === "bg-red-500").length : 0;
 
   const totalCols = podeGerenciar ? 6 : medicoView ? 8 : 5;
 
@@ -157,10 +242,16 @@ export default function Consultas() {
       subtitle={medicoView ? "Suas consultas agendadas" : "Todas as consultas"}
       actions={
         podeGerenciar ? (
-          <Button onClick={handleNova} className="bg-primary hover:bg-primary/90 gap-2">
-            <CalendarPlus className="h-4 w-4" />
-            Nova Consulta
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" onClick={handleAbrirAgenda} disabled={abrindoAgenda} className="gap-2">
+              {abrindoAgenda ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <CalendarDays className="h-4 w-4" />}
+              {abrindoAgenda ? "Abrindo agenda..." : "Abrir Google Agenda"}
+            </Button>
+            <Button onClick={handleNova} className="bg-primary hover:bg-primary/90 gap-2">
+              <CalendarPlus className="h-4 w-4" />
+              Nova Consulta
+            </Button>
+          </div>
         ) : undefined
       }
     >
@@ -175,14 +266,16 @@ export default function Consultas() {
             onChange={(e) => setBusca(e.target.value.replace(/[^a-zA-ZÀ-ÿ\s]/g, ""))}
           />
         </div>
-        <Input
-          type="date"
-          className="w-44"
-          value={dataFiltro}
-          onChange={(e) => setDataFiltro(e.target.value)}
-        />
+        <Input type="date" className="w-44" value={dataFiltro} onChange={(e) => setDataFiltro(e.target.value)} />
         {(busca || dataFiltro) && (
-          <Button variant="ghost" size="sm" onClick={() => { setBusca(""); setDataFiltro(""); }}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setBusca("");
+              setDataFiltro("");
+            }}
+          >
             Limpar
           </Button>
         )}
@@ -222,6 +315,7 @@ export default function Consultas() {
               ) : (
                 consultasFiltradas.map((c) => {
                   const indicador = medicoView ? getIndicador(c) : null;
+                  const googleCalendarEventLink = c.googleCalendarEventLink;
                   return (
                     <TableRow key={c.id}>
                       <TableCell>{formatData(c.data)}</TableCell>
@@ -236,9 +330,7 @@ export default function Consultas() {
                       </TableCell>
                       <TableCell className="text-muted-foreground">
                         {c.medico?.nome ?? "—"}
-                        {c.medico?.especialidade && (
-                          <span className="block text-xs">{c.medico.especialidade}</span>
-                        )}
+                        {c.medico?.especialidade && <span className="block text-xs">{c.medico.especialidade}</span>}
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline" className={STATUS_CLASS[c.status] ?? ""}>
@@ -249,35 +341,30 @@ export default function Consultas() {
                       {/* Indicador colorido — só MEDICO */}
                       {medicoView && indicador && (
                         <TableCell className="w-6 px-2">
-                          <div
-                            className={`h-4 w-4 rounded-full ${indicador.cor}`}
-                            title={indicador.titulo}
-                          />
+                          <div className={`h-4 w-4 rounded-full ${indicador.cor}`} title={indicador.titulo} />
                         </TableCell>
                       )}
 
                       {/* Ações do MEDICO */}
                       {medicoView && (
                         <TableCell>
-                          <div className="flex gap-2">
-                            <Button
+                          <div className="flex flex-wrap gap-2">
+                            <AcaoConsultaButton
+                              label="Ver / criar prontuário"
                               variant="outline"
-                              size="sm"
                               onClick={() => handleProntuario(c)}
-                              title="Ver / criar prontuário"
                             >
                               <FileText className="h-4 w-4" />
-                            </Button>
+                            </AcaoConsultaButton>
                             {(c.status === "AGENDADA" || c.status === "CONFIRMADA") && (
-                              <Button
+                              <AcaoConsultaButton
+                                label="Marcar como Realizada"
                                 variant="outline"
-                                size="sm"
                                 onClick={() => handleRealizar(c)}
-                                title="Marcar como Realizada"
                                 className="text-green-600 hover:text-green-700"
                               >
                                 <CheckCircle2 className="h-4 w-4" />
-                              </Button>
+                              </AcaoConsultaButton>
                             )}
                           </div>
                         </TableCell>
@@ -286,82 +373,128 @@ export default function Consultas() {
                       {/* Ações do ADMIN / SECRETARIA */}
                       {podeGerenciar && (
                         <TableCell>
-                          <div className="flex gap-1.5 items-center">
-                            <Button
+                          <div className="flex flex-wrap gap-1.5 items-center">
+                            {isAdmin() && (
+                              <AcaoConsultaButton
+                                label="Ver / criar prontuário"
+                                variant="outline"
+                                aria-label={`Gerenciar prontuário de ${c.paciente?.nome ?? "paciente"}`}
+                                onClick={() => handleProntuario(c)}
+                              >
+                                <FileText className="h-3.5 w-3.5" />
+                              </AcaoConsultaButton>
+                            )}
+                            {isAdmin() && (c.status === "AGENDADA" || c.status === "CONFIRMADA") && (
+                              <AcaoConsultaButton
+                                label="Marcar como Realizada"
+                                variant="outline"
+                                className="text-green-600 hover:text-green-700"
+                                aria-label={`Marcar consulta de ${c.paciente?.nome ?? "paciente"} como realizada`}
+                                onClick={() => handleRealizar(c)}
+                              >
+                                <CheckCircle2 className="h-3.5 w-3.5" />
+                              </AcaoConsultaButton>
+                            )}
+                            {googleCalendarEventLink && (
+                              <AcaoConsultaButton
+                                label="Abrir card"
+                                variant="outline"
+                                className="text-blue-700 hover:text-blue-800"
+                                aria-label={`Abrir card da agenda de ${c.paciente?.nome ?? "paciente"}`}
+                                onClick={() => window.open(googleCalendarEventLink, "_blank", "noopener,noreferrer")}
+                              >
+                                <ExternalLink className="h-3.5 w-3.5" />
+                              </AcaoConsultaButton>
+                            )}
+                            <AcaoConsultaButton
+                              label={sincronizandoId === c.id ? "Cadastrando..." : "Re-cadastrar na agenda"}
                               variant="outline"
-                              size="icon"
-                              className="h-7 w-7"
+                              disabled={sincronizandoId !== null}
+                              onClick={() => handleRecadastrarNaAgenda(c)}
+                            >
+                              {sincronizandoId === c.id ? (
+                                <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                <CalendarPlus className="h-3.5 w-3.5" />
+                              )}
+                            </AcaoConsultaButton>
+                            <AcaoConsultaButton
+                              label="Editar consulta"
+                              variant="outline"
                               aria-label={`Editar consulta de ${c.paciente?.nome ?? "paciente"}`}
                               onClick={() => handleEditar(c)}
                             >
                               <Edit className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button
+                            </AcaoConsultaButton>
+                            <AcaoConsultaButton
+                              label="Excluir consulta"
                               variant="outline"
-                              size="icon"
-                              className="h-7 w-7 text-destructive hover:text-destructive/90"
+                              className="text-destructive hover:text-destructive/90"
                               aria-label={`Excluir consulta de ${c.paciente?.nome ?? "paciente"}`}
                               onClick={() => handleDeletar(c)}
                             >
                               <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
+                            </AcaoConsultaButton>
                             {isSecretaria() && (
-                              <Button
+                              <AcaoConsultaButton
+                                label="Enviar confirmação via WhatsApp"
                                 variant="outline"
-                                size="icon"
-                                className="h-7 w-7 text-green-600 hover:text-green-700 hover:border-green-300 disabled:opacity-50"
-                                title="Enviar confirmação via WhatsApp"
-                                disabled={!c.paciente?.telefone || (c.status !== "AGENDADA" && c.status !== "CONFIRMADA")}
+                                className="text-green-600 hover:text-green-700 hover:border-green-300 disabled:opacity-50"
+                                disabled={
+                                  !c.paciente?.telefone || (c.status !== "AGENDADA" && c.status !== "CONFIRMADA")
+                                }
                                 onClick={() =>
                                   abrirWhatsApp(
                                     c.paciente!.telefone!,
-                                    `Ola, ${c.paciente!.nome}!\n\nPassando para confirmar sua consulta agendada para o dia ${formatData(c.data)} as ${c.hora}h.\n\nPor favor, responda confirmando sua presenca ou nos avise caso precise remarcar.\n\nObrigado! - Instituto de Saude de Guarapuava`
+                                    `Ola, ${c.paciente!.nome}!\n\nPassando para confirmar sua consulta agendada para o dia ${formatData(c.data)} as ${c.hora}h.\n\nPor favor, responda confirmando sua presenca ou nos avise caso precise remarcar.\n\nObrigado! - Instituto de Saude de Guarapuava`,
                                   )
                                 }
                               >
                                 <MessageCircle className="h-3.5 w-3.5" />
-                              </Button>
+                              </AcaoConsultaButton>
                             )}
-                            <Button
+                            <AcaoConsultaButton
+                              label="Marcar como Confirmada"
                               variant="outline"
-                              size="icon"
-                              className="h-7 w-7 text-green-600 hover:text-green-700 hover:border-green-300 disabled:opacity-50"
-                              title="Marcar como Confirmada"
+                              className="text-green-600 hover:text-green-700 hover:border-green-300 disabled:opacity-50"
                               disabled={c.status !== "AGENDADA"}
-                              onClick={() => setConfirmar({
-                                titulo: "Confirmar Consulta",
-                                descricao: `Deseja confirmar a consulta de ${c.paciente?.nome}?`,
-                                labelConfirmar: "Confirmar",
-                                variante: "default",
-                                acao: async () => {
-                                  await ConsultaService.confirmar(c.id!);
-                                  toast.success("Consulta confirmada!");
-                                  await carregar();
-                                },
-                              })}
+                              onClick={() =>
+                                setConfirmar({
+                                  titulo: "Confirmar Consulta",
+                                  descricao: `Deseja confirmar a consulta de ${c.paciente?.nome}?`,
+                                  labelConfirmar: "Confirmar",
+                                  variante: "default",
+                                  acao: async () => {
+                                    await ConsultaService.confirmar(c.id!);
+                                    toast.success("Consulta confirmada!");
+                                    await carregar();
+                                  },
+                                })
+                              }
                             >
                               <CheckCircle2 className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button
+                            </AcaoConsultaButton>
+                            <AcaoConsultaButton
+                              label="Cancelar Consulta"
                               variant="outline"
-                              size="icon"
-                              className="h-7 w-7 text-orange-500 hover:text-orange-600 hover:border-orange-300 disabled:opacity-50"
-                              title="Cancelar Consulta"
+                              className="text-orange-500 hover:text-orange-600 hover:border-orange-300 disabled:opacity-50"
                               disabled={c.status !== "AGENDADA" && c.status !== "CONFIRMADA"}
-                              onClick={() => setConfirmar({
-                                titulo: "Cancelar Consulta",
-                                descricao: `Deseja cancelar a consulta de ${c.paciente?.nome}?`,
-                                labelConfirmar: "Cancelar Consulta",
-                                variante: "destructive",
-                                acao: async () => {
-                                  await ConsultaService.cancelar(c.id!);
-                                  toast.success("Consulta cancelada!");
-                                  await carregar();
-                                },
-                              })}
+                              onClick={() =>
+                                setConfirmar({
+                                  titulo: "Cancelar Consulta",
+                                  descricao: `Deseja cancelar a consulta de ${c.paciente?.nome}?`,
+                                  labelConfirmar: "Cancelar Consulta",
+                                  variante: "destructive",
+                                  acao: async () => {
+                                    await ConsultaService.cancelar(c.id!);
+                                    toast.success("Consulta cancelada!");
+                                    await carregar();
+                                  },
+                                })
+                              }
                             >
                               <XCircle className="h-3.5 w-3.5" />
-                            </Button>
+                            </AcaoConsultaButton>
                           </div>
                         </TableCell>
                       )}
@@ -375,12 +508,7 @@ export default function Consultas() {
       </Card>
 
       {podeGerenciar && (
-        <NovaConsultaModal
-          open={open}
-          onOpenChange={setOpen}
-          onSaved={carregar}
-          consulta={selecionada}
-        />
+        <NovaConsultaModal open={open} onOpenChange={setOpen} onSaved={carregar} consulta={selecionada} />
       )}
       <ProntuarioModal
         open={prontuarioOpen}

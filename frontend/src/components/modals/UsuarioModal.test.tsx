@@ -117,7 +117,7 @@ describe('UsuarioModal', () => {
   });
 
   describe('validações', () => {
-    it('deve mostrar erro quando criar usuário sem senha', async () => {
+    it('deve bloquear o salvamento enquanto a senha obrigatória estiver ausente', () => {
       renderModal();
 
       fireEvent.change(screen.getByLabelText('Nome'), {
@@ -127,15 +127,19 @@ describe('UsuarioModal', () => {
         target: { value: 'novo@clinica.com' },
       });
 
-      fireEvent.click(screen.getByRole('button', { name: 'Salvar' }));
-
-      await waitFor(() => {
-        expect(toast.error).toHaveBeenCalledWith(
-          'Informe uma senha para o novo usuário',
-        );
-      });
-
+      expect(screen.getByRole('button', { name: 'Salvar' })).toBeDisabled();
       expect(mockCriar).not.toHaveBeenCalled();
+    });
+
+    it('deve bloquear o salvamento de médico sem CRM e especialidade', () => {
+      renderModal();
+
+      fireEvent.change(screen.getByLabelText('Nome'), { target: { value: 'Dra. Ana' } });
+      fireEvent.change(screen.getByLabelText('E-mail'), { target: { value: 'ana@clinica.com' } });
+      fireEvent.change(screen.getByLabelText('Senha'), { target: { value: 'Senha@123' } });
+      fireEvent.change(screen.getByLabelText('Perfil'), { target: { value: 'MEDICO' } });
+
+      expect(screen.getByRole('button', { name: 'Salvar' })).toBeDisabled();
     });
   });
 
@@ -260,6 +264,18 @@ describe('UsuarioModal', () => {
       });
 
       expect(screen.getByLabelText('Telefone')).toHaveValue('(11) 99999-0000');
+    });
+  });
+
+  describe('máscara de CRM', () => {
+    it('deve formatar CRM enquanto digita', () => {
+      renderModal();
+      fireEvent.change(screen.getByLabelText('Perfil'), { target: { value: 'MEDICO' } });
+
+      const input = screen.getByLabelText('CRM');
+      fireEvent.change(input, { target: { value: 'sp12345' } });
+
+      expect(input).toHaveValue('CRM-SP-12345');
     });
   });
 });

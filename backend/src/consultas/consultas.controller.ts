@@ -17,11 +17,18 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { ConsultasService } from './consultas.service';
 import { CreateConsultaDto } from './dto/create-consulta.dto';
 import { UpdateConsultaDto } from './dto/update-consulta.dto';
+import { AuthenticatedRequest } from '../auth/interfaces/authenticated-user.interface';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('consultas')
 export class ConsultasController {
   constructor(private readonly service: ConsultasService) {}
+
+  @Get('google-calendar/link')
+  @Roles(Role.ADMIN, Role.SECRETARIA)
+  buscarLinkAgenda() {
+    return this.service.buscarLinkAgenda();
+  }
 
   @Get()
   @Roles(Role.ADMIN, Role.SECRETARIA, Role.MEDICO)
@@ -44,6 +51,12 @@ export class ConsultasController {
     return this.service.create(dto);
   }
 
+  @Post(':id/google-calendar')
+  @Roles(Role.ADMIN, Role.SECRETARIA)
+  recadastrarNaAgenda(@Param('id') id: string) {
+    return this.service.recadastrarNaAgenda(Number(id));
+  }
+
   @Put(':id')
   @Roles(Role.ADMIN, Role.SECRETARIA)
   update(@Param('id') id: string, @Body() dto: UpdateConsultaDto) {
@@ -51,9 +64,9 @@ export class ConsultasController {
   }
 
   @Patch(':id/realizar')
-  @Roles(Role.MEDICO)
-  realizar(@Param('id') id: string, @Request() req: any) {
-    return this.service.realizar(Number(id), req.user.id);
+  @Roles(Role.ADMIN, Role.MEDICO)
+  realizar(@Param('id') id: string, @Request() req: AuthenticatedRequest) {
+    return this.service.realizar(Number(id), req.user);
   }
 
   @Patch(':id/confirmar')

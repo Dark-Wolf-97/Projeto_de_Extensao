@@ -140,6 +140,7 @@ export function NovaConsultaModal({ open, onOpenChange, onSaved, consulta }: Pro
   const dataInvalida = Boolean(
     form.data && form.hora && horarioFoiAlterado && !isFutureDateTime(form.data, form.hora),
   );
+  const canSubmit = Boolean(pacienteSelecionado?.id) && Boolean(medicoSelecionado?.id) && Boolean(form.data) && Boolean(form.hora) && !dataInvalida;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -202,11 +203,12 @@ export function NovaConsultaModal({ open, onOpenChange, onSaved, consulta }: Pro
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="grid gap-5 py-1">
+        <form onSubmit={handleSubmit} autoComplete="off" className="grid gap-5 py-1">
+          <p className="text-xs text-muted-foreground"><span className="text-destructive" aria-hidden="true">*</span> Campos obrigatórios</p>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 
           <div className="grid gap-2">
-            <Label htmlFor="paciente">Paciente</Label>
+            <Label htmlFor="paciente" className="after:ml-1 after:text-destructive after:content-['*']">Paciente</Label>
             <Input
               id="paciente"
               value={buscaPaciente}
@@ -241,7 +243,7 @@ export function NovaConsultaModal({ open, onOpenChange, onSaved, consulta }: Pro
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="medico">Médico</Label>
+            <Label htmlFor="medico" className="after:ml-1 after:text-destructive after:content-['*']">Médico</Label>
             <Input
               id="medico"
               value={buscaMedico}
@@ -284,7 +286,7 @@ export function NovaConsultaModal({ open, onOpenChange, onSaved, consulta }: Pro
           </div>
 
           <div className="grid gap-2">
-              <Label htmlFor="data">Data</Label>
+              <Label htmlFor="data" className="after:ml-1 after:text-destructive after:content-['*']">Data</Label>
               <Input
                 id="data"
                 type="date"
@@ -295,7 +297,7 @@ export function NovaConsultaModal({ open, onOpenChange, onSaved, consulta }: Pro
               />
           </div>
           <div className="grid gap-2">
-              <Label htmlFor="hora">Hora</Label>
+              <Label htmlFor="hora" className="after:ml-1 after:text-destructive after:content-['*']">Hora</Label>
               <Input
                 id="hora"
                 type="time"
@@ -343,7 +345,7 @@ export function NovaConsultaModal({ open, onOpenChange, onSaved, consulta }: Pro
             </Button>
             <Button
               type="submit"
-              disabled={saving || !!dataInvalida}
+              disabled={saving || !canSubmit}
               className="bg-primary hover:bg-primary/90"
             >
               {saving ? "Salvando..." : isEdit ? "Atualizar" : "Salvar"}

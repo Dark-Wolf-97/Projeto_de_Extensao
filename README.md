@@ -84,4 +84,29 @@ npm test -- --runInBand
 
 A mensageria está explicitamente indisponível neste bloco. A próxima etapa deverá
 usar `whatsapp-web.js` com sessão persistente via `LocalAuth` em volume local
-protegido. Z-API e Google Calendar não fazem parte desta entrega.
+protegido. Z-API não faz parte da solução.
+
+## Google Agenda (Bloco 1.5)
+
+A integração usa a API do Google Calendar exclusivamente no backend. Para ativá-la:
+
+1. Ative a Google Calendar API no projeto Google Cloud da clínica e crie uma
+   service account.
+2. Compartilhe a agenda usada pela clínica com o e-mail da service account,
+   permitindo alterações nos eventos.
+3. Configure as variáveis abaixo no `.env` não versionado da implantação:
+
+```dotenv
+GOOGLE_CALENDAR_ENABLED=true
+GOOGLE_CALENDAR_ID=identificador_da_agenda
+GOOGLE_SERVICE_ACCOUNT_EMAIL=service-account@projeto.iam.gserviceaccount.com
+GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+GOOGLE_CALENDAR_TIMEZONE=America/Sao_Paulo
+GOOGLE_CALENDAR_DEFAULT_DURATION_MINUTES=30
+```
+
+Não salve o arquivo JSON da service account no repositório. A agenda pode conter
+consultas simultâneas; o Portal não usa os eventos do Google para bloquear
+horários. Se a integração estiver desabilitada ou temporariamente indisponível,
+o CRUD de consultas continua funcionando e ADMIN/SECRETARIA podem tentar o
+recadastro posteriormente pela listagem.

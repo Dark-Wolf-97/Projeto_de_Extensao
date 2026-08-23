@@ -27,6 +27,7 @@ const ADMIN_ITEMS = [
   { title: "Consultas", url: "/consultas", icon: CalendarDays },
   { title: "Usuários", url: "/usuarios", icon: Users },
   { title: "Pacientes", url: "/pacientes", icon: UserRound },
+  { title: "Prontuários", url: "/prontuarios", icon: FileText },
 ];
 
 const SECRETARIA_ITEMS = [

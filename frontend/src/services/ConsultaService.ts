@@ -13,6 +13,10 @@ export interface Consulta {
   hora: string;
   status: StatusConsulta;
   observacoes?: string;
+  googleCalendarEventId?: string | null;
+  googleCalendarEventLink?: string | null;
+  googleCalendarSyncedAt?: string | null;
+  googleCalendarLastError?: string | null;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -37,15 +41,16 @@ export const ConsultaService = {
   atualizar: (id: number, payload: Partial<CreateConsultaPayload>): Promise<Consulta> =>
     http<Consulta>(`/consultas/${id}`, { method: "PUT", json: payload }),
 
-  realizar: (id: number): Promise<Consulta> =>
-    http<Consulta>(`/consultas/${id}/realizar`, { method: "PATCH" }),
+  realizar: (id: number): Promise<Consulta> => http<Consulta>(`/consultas/${id}/realizar`, { method: "PATCH" }),
 
-  confirmar: (id: number): Promise<Consulta> =>
-    http<Consulta>(`/consultas/${id}/confirmar`, { method: "PATCH" }),
+  confirmar: (id: number): Promise<Consulta> => http<Consulta>(`/consultas/${id}/confirmar`, { method: "PATCH" }),
 
-  cancelar: (id: number): Promise<Consulta> =>
-    http<Consulta>(`/consultas/${id}/cancelar`, { method: "PATCH" }),
+  cancelar: (id: number): Promise<Consulta> => http<Consulta>(`/consultas/${id}/cancelar`, { method: "PATCH" }),
 
-  deletar: (id: number): Promise<void> =>
-    http<void>(`/consultas/${id}`, { method: "DELETE" }),
+  recadastrarNaAgenda: (id: number): Promise<Consulta> =>
+    http<Consulta>(`/consultas/${id}/google-calendar`, { method: "POST" }),
+
+  buscarLinkAgenda: (): Promise<{ link: string }> => http<{ link: string }>("/consultas/google-calendar/link"),
+
+  deletar: (id: number): Promise<void> => http<void>(`/consultas/${id}`, { method: "DELETE" }),
 };

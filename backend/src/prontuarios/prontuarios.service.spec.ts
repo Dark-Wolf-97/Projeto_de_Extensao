@@ -95,6 +95,15 @@ describe('ProntuariosService', () => {
       expect(prisma.prontuario.create).toHaveBeenCalled();
     });
 
+    it('deve permitir que administrador crie prontuário de qualquer consulta', async () => {
+      prisma.consulta.findUnique.mockResolvedValue(consulta);
+      prisma.prontuario.findUnique.mockResolvedValue(null);
+      prisma.prontuario.create.mockResolvedValue(prontuario);
+
+      await expect(service.create(dto, admin)).resolves.toEqual(prontuario);
+      expect(prisma.prontuario.create).toHaveBeenCalled();
+    });
+
     it('deve negar criação para consulta de outro médico', async () => {
       prisma.consulta.findUnique.mockResolvedValue(consulta);
 

@@ -95,6 +95,9 @@ export function NovoPacienteModal({ open, onOpenChange, onSaved, paciente }: Pro
 
   const cpfCompleto = form.cpf.replace(/\D/g, "").length === 11;
   const cpfInvalido = cpfCompleto && !validarCpf(form.cpf);
+  const telefoneValido = [10, 11].includes(form.telefone.replace(/\D/g, "").length);
+  const telefoneInvalido = Boolean(form.telefone) && !telefoneValido;
+  const canSubmit = Boolean(form.nome.trim()) && validarCpf(form.cpf) && telefoneValido;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -150,30 +153,29 @@ export function NovoPacienteModal({ open, onOpenChange, onSaved, paciente }: Pro
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="grid gap-5 py-1">
+        <form onSubmit={handleSubmit} autoComplete="off" className="grid gap-5 py-1">
+          <p className="text-xs text-muted-foreground"><span className="text-destructive" aria-hidden="true">*</span> Campos obrigatórios</p>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="grid gap-2 sm:col-span-2">
-            <Label htmlFor="nome">Nome</Label>
+            <Label htmlFor="nome" className="after:ml-1 after:text-destructive after:content-['*']">Nome</Label>
             <Input
               id="nome"
               value={form.nome}
               onChange={(e) => set("nome", e.target.value.replace(/[^a-zA-ZÀ-ÿ\s]/g, ""))}
               placeholder="Nome completo"
-              autoComplete="name"
               required
               maxLength={100}
             />
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="cpf">CPF</Label>
+            <Label htmlFor="cpf" className="after:ml-1 after:text-destructive after:content-['*']">CPF</Label>
             <Input
               id="cpf"
               value={form.cpf}
               onChange={(e) => set("cpf", formatCpf(e.target.value))}
               placeholder="000.000.000-00"
               inputMode="numeric"
-              autoComplete="off"
               required
               maxLength={14}
               className={cpfInvalido ? "border-destructive focus-visible:ring-destructive" : ""}
@@ -184,17 +186,18 @@ export function NovoPacienteModal({ open, onOpenChange, onSaved, paciente }: Pro
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="telefone">Telefone</Label>
+            <Label htmlFor="telefone" className="after:ml-1 after:text-destructive after:content-['*']">Telefone</Label>
             <Input
               id="telefone"
               value={form.telefone}
               onChange={(e) => set("telefone", formatTelefone(e.target.value))}
               placeholder="(11) 99999-9999"
               inputMode="tel"
-              autoComplete="tel"
               required
               maxLength={16}
+              className={telefoneInvalido ? "border-destructive focus-visible:ring-destructive" : ""}
             />
+            {telefoneInvalido && <p className="text-xs text-destructive">Informe um telefone válido</p>}
           </div>
 
           <div className="grid gap-2">
@@ -216,7 +219,7 @@ export function NovoPacienteModal({ open, onOpenChange, onSaved, paciente }: Pro
             </Button>
             <Button
               type="submit"
-              disabled={saving || cpfInvalido}
+              disabled={saving || !canSubmit}
               className="bg-primary hover:bg-primary/90"
             >
               {saving ? "Salvando..." : isEdit ? "Atualizar" : "Salvar"}
