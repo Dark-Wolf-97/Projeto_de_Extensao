@@ -54,9 +54,16 @@ Os textos da interface e as mensagens de negócio devem permanecer em português
 ## WhatsApp
 
 - Z-API não faz mais parte da solução.
-- A futura integração deve usar `whatsapp-web.js` e sessão persistente com `LocalAuth` em volume local protegido.
+- A integração usa `whatsapp-web.js` (`backend/src/whatsapp/`) e sessão persistente com `LocalAuth` em volume local protegido (`WHATSAPP_SESSION_PATH`).
 - Não implemente a integração de WhatsApp quando a tarefa estiver limitada à estabilização do Bloco 1.
 - Nunca afirmar que a automação elimina o risco de bloqueio da conta; deixar limitações operacionais documentadas.
+- **Limitação conhecida (24/08/2026):** o WhatsApp mudou o esquema interno de identificação de contatos (sistema "LID") e o `whatsapp-web.js` v1.34.7 (a versão publicada no npm mais recente) ainda não tem correção para isso. Efeitos observados em teste real:
+  - Envio de mensagem: `client.sendMessage` com `numero@c.us` falha com `Error: No LID for user`. Contornado resolvendo o contato antes com `client.getNumberId()` (`WhatsappService.enviarTexto`) — funciona.
+  - Recebimento de mensagem: o evento `message` do client simplesmente não dispara para contas afetadas pelo LID — sem erro, sem log, o evento não chega. **Sem contorno conhecido no momento.** Isso quebra a confirmação automática por resposta do paciente (US007): a mensagem sai normalmente, mas a resposta "sim" do paciente não confirma a consulta sozinha.
+  - Por decisão do usuário, a confirmação continua manual (botão "Confirmar" já existente em Consultas) até a lib publicar correção. Não remova a lógica de `MensagensService.processarMensagemRecebida`/`WhatsappService.onInboundMessage` — ela já está correta e volta a funcionar sozinha assim que a lib corrigir o evento `message`, sem precisar mudar nada aqui.
+  - Ver issues públicas da lib sobre "No LID for user" antes de tentar mexer nisso de novo; não presuma que é bug no código do Portal.
+- **Limitação conhecida no Windows:** quando o aparelho é desvinculado pelo celular (ou em qualquer logout), `whatsapp-web.js` dispara `LocalAuth.logout()` de dentro de um listener interno de navegação do Puppeteer — fora de qualquer request nosso, então não dá pra envolver com try/catch no código da aplicação. No Windows isso às vezes falha com `EBUSY: resource busy or locked` ao apagar os arquivos de sessão, porque o Chromium ainda está com o arquivo aberto, e vira uma rejeição de Promise não tratada que derrubaria o processo inteiro. Por isso `backend/src/main.ts` registra `process.on('unhandledRejection'/'uncaughtException')` só pra logar e não deixar isso ser fatal — não remova esse handler achando que é código morto. Também aumentamos `rmMaxRetries` do `LocalAuth` (`whatsapp.constants.ts`) para dar mais tentativas antes de desistir.
+- `WHATSAPP_ENABLED` **não é um interruptor completo**, por decisão explícita do usuário: ele só controla se o client tenta conectar sozinho no boot (`WhatsappService.onModuleInit`). O botão "Conectar" em Configurações e o endpoint `POST /whatsapp/conectar` sempre funcionam, mesmo com `WHATSAPP_ENABLED=false`. Padrão (variável não definida) é habilitado — `true` implícito. Ver comentário em `WhatsappService.getConfig()`.
 
 ## Comandos de validação
 

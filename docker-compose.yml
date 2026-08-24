@@ -51,6 +51,11 @@ services:
       GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY: ${GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY:-}
       GOOGLE_CALENDAR_TIMEZONE: ${GOOGLE_CALENDAR_TIMEZONE:-America/Sao_Paulo}
       GOOGLE_CALENDAR_DEFAULT_DURATION_MINUTES: ${GOOGLE_CALENDAR_DEFAULT_DURATION_MINUTES:-30}
+      WHATSAPP_ENABLED: ${WHATSAPP_ENABLED:-true}
+      WHATSAPP_SESSION_PATH: ${WHATSAPP_SESSION_PATH:-/app/whatsapp-session}
+      WHATSAPP_CONFIRMACAO_DELAY_MINUTES: ${WHATSAPP_CONFIRMACAO_DELAY_MINUTES:-3}
+    volumes:
+      - whatsapp_session:/app/whatsapp-session
     expose:
       - "3000"
 
@@ -68,3 +73,4 @@ services:
 
 volumes:
   mysql_data:
+  whatsapp_session:

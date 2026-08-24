@@ -8,6 +8,7 @@ import { Role, StatusConsulta } from '@prisma/client';
 import { ConsultasService } from './consultas.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { GoogleCalendarService } from '../google-calendar/google-calendar.service';
+import { MensagensService } from '../mensagens/mensagens.service';
 
 const AMANHA = new Date();
 AMANHA.setDate(AMANHA.getDate() + 1);
@@ -56,6 +57,10 @@ const mockGoogleCalendar = {
   buscarLinkAgenda: jest.fn(),
 };
 
+const mockMensagens = {
+  agendarConfirmacao: jest.fn(),
+};
+
 describe('ConsultasService', () => {
   let service: ConsultasService;
 
@@ -65,6 +70,7 @@ describe('ConsultasService', () => {
         ConsultasService,
         { provide: PrismaService, useValue: mockPrisma },
         { provide: GoogleCalendarService, useValue: mockGoogleCalendar },
+        { provide: MensagensService, useValue: mockMensagens },
       ],
     }).compile();
 
@@ -91,6 +97,39 @@ describe('ConsultasService', () => {
     expect(
       mockGoogleCalendar.sincronizarSemInterromperPortal,
     ).toHaveBeenCalledWith(mockConsulta.id);
+  });
+
+  it('deve agendar a mensagem de confirmação sem interromper a criação da consulta', async () => {
+    mockPrisma.consulta.findFirst.mockResolvedValue(null);
+    mockPrisma.consulta.create.mockResolvedValue(mockConsulta);
+
+    await service.create({
+      pacienteId: 1,
+      medicoId: 2,
+      data: DATA_FUTURA,
+      hora: HORA,
+    });
+
+    expect(mockMensagens.agendarConfirmacao).toHaveBeenCalledWith(
+      mockConsulta.id,
+    );
+  });
+
+  it('não deve quebrar a criação da consulta quando o agendamento da mensagem falha', async () => {
+    mockPrisma.consulta.findFirst.mockResolvedValue(null);
+    mockPrisma.consulta.create.mockResolvedValue(mockConsulta);
+    mockMensagens.agendarConfirmacao.mockRejectedValueOnce(
+      new Error('falha ao agendar mensagem'),
+    );
+
+    await expect(
+      service.create({
+        pacienteId: 1,
+        medicoId: 2,
+        data: DATA_FUTURA,
+        hora: HORA,
+      }),
+    ).resolves.toEqual(mockConsulta);
   });
 
   // ─── findAll ───────────────────────────────────────────────────────────────

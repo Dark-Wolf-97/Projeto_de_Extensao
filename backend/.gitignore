@@ -56,3 +56,7 @@ pids
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
 /generated/prisma
+
+# Sessão local do WhatsApp (whatsapp-web.js / LocalAuth) — equivale a uma credencial
+/whatsapp-session
+/.wwebjs_cache

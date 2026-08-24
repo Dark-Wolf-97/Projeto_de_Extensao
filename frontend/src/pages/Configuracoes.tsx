@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { PageShell } from "@/components/layout/PageShell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,10 +8,23 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { UsuarioService } from "@/services/UsuarioService";
+import { WhatsappService, WhatsappStatusResponse } from "@/services/WhatsappService";
 import { useAuth } from "@/context/AuthContext";
 import { httpErrorMessage } from "@/services/http";
 import { toast } from "@/components/ui/sonner";
-import { Check, KeyRound, User, X } from "lucide-react";
+import { Check, KeyRound, MessageCircle, User, X } from "lucide-react";
+
+const WHATSAPP_STATUS_LABEL: Record<WhatsappStatusResponse["status"], string> = {
+  DESCONECTADO: "Desconectado",
+  AGUARDANDO_QR: "Aguardando leitura do QR Code",
+  CONECTADO: "Conectado",
+};
+
+const WHATSAPP_STATUS_CLASS: Record<WhatsappStatusResponse["status"], string> = {
+  DESCONECTADO: "bg-red-100 text-red-800 border-red-200 hover:bg-red-100",
+  AGUARDANDO_QR: "bg-gold text-gold-foreground hover:bg-gold",
+  CONECTADO: "bg-green-100 text-green-800 border-green-200 hover:bg-green-100",
+};
 
 const ROLE_LABEL: Record<string, string> = {
   ADMIN: "Administrador",
@@ -71,7 +84,7 @@ interface FormSenha {
 }
 
 export default function Configuracoes() {
-  const { user: authUser, isMedico, updateUser } = useAuth();
+  const { user: authUser, isAdmin, isMedico, updateUser } = useAuth();
 
   const [dados, setDados] = useState<FormDados>({
     nome: "", email: "", telefone: "", crm: "", especialidade: "",
@@ -80,6 +93,14 @@ export default function Configuracoes() {
   const [role, setRole] = useState("");
   const [salvandoDados, setSalvandoDados] = useState(false);
   const [salvandoSenha, setSalvandoSenha] = useState(false);
+
+  const [whatsapp, setWhatsapp] = useState<WhatsappStatusResponse>({
+    status: "DESCONECTADO",
+    qr: null,
+  });
+  const [conectandoWhatsapp, setConectandoWhatsapp] = useState(false);
+  const [desconectandoWhatsapp, setDesconectandoWhatsapp] = useState(false);
+  const pollAtivoRef = useRef(true);
 
   useEffect(() => {
     UsuarioService.me()
@@ -95,6 +116,54 @@ export default function Configuracoes() {
       })
       .catch((err) => toast.error(err));
   }, []);
+
+  useEffect(() => {
+    if (!isAdmin()) return;
+    pollAtivoRef.current = true;
+
+    const consultarStatus = async () => {
+      if (!pollAtivoRef.current) return;
+      let proximoIntervaloMs = 5000;
+      try {
+        const resultado = await WhatsappService.status();
+        if (!pollAtivoRef.current) return;
+        setWhatsapp(resultado);
+        proximoIntervaloMs = resultado.status === "CONECTADO" ? 30000 : 3000;
+      } catch {
+        // Falha ao consultar status não deve interromper o polling, só tenta de novo.
+      }
+      if (pollAtivoRef.current) setTimeout(consultarStatus, proximoIntervaloMs);
+    };
+
+    void consultarStatus();
+
+    return () => {
+      pollAtivoRef.current = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleConectarWhatsapp = async () => {
+    setConectandoWhatsapp(true);
+    try {
+      setWhatsapp(await WhatsappService.conectar());
+    } catch (err) {
+      toast.error(err);
+    } finally {
+      setConectandoWhatsapp(false);
+    }
+  };
+
+  const handleDesconectarWhatsapp = async () => {
+    setDesconectandoWhatsapp(true);
+    try {
+      setWhatsapp(await WhatsappService.desconectar());
+    } catch (err) {
+      toast.error(err);
+    } finally {
+      setDesconectandoWhatsapp(false);
+    }
+  };
 
   const initials = dados.nome
     ? dados.nome.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase()
@@ -314,6 +383,60 @@ export default function Configuracoes() {
               </form>
             </CardContent>
           </Card>
+
+          {/* Conexão WhatsApp */}
+          {isAdmin() && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <MessageCircle className="h-4 w-4" />
+                  Conexão WhatsApp
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-4">
+                <div>
+                  <Badge className={WHATSAPP_STATUS_CLASS[whatsapp.status]}>
+                    {WHATSAPP_STATUS_LABEL[whatsapp.status]}
+                  </Badge>
+                </div>
+
+                {whatsapp.status === "AGUARDANDO_QR" && whatsapp.qr && (
+                  <div className="flex flex-col items-center gap-2">
+                    <img
+                      src={whatsapp.qr}
+                      alt="QR Code do WhatsApp"
+                      className="h-56 w-56 rounded-md border"
+                    />
+                    <p className="text-center text-sm text-muted-foreground">
+                      Abra o WhatsApp no celular da clínica, toque em Aparelhos conectados
+                      e escaneie este código.
+                    </p>
+                  </div>
+                )}
+
+                <p className="text-xs text-muted-foreground">
+                  Integração não oficial (whatsapp-web.js): o WhatsApp não garante que a
+                  conta não será bloqueada por automação. Use um número dedicado da clínica.
+                </p>
+
+                <div className="flex justify-end gap-2">
+                  {whatsapp.status === "DESCONECTADO" ? (
+                    <Button onClick={handleConectarWhatsapp} disabled={conectandoWhatsapp}>
+                      {conectandoWhatsapp ? "Conectando..." : "Conectar"}
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      onClick={handleDesconectarWhatsapp}
+                      disabled={desconectandoWhatsapp}
+                    >
+                      {desconectandoWhatsapp ? "Desconectando..." : "Desconectar"}
+                    </Button>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
         </div>
       </div>

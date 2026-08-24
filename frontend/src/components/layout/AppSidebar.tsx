@@ -20,6 +20,7 @@ import {
   Cake,
   CalendarDays,
   FileText,
+  MessageCircle,
 } from "lucide-react";
 
 const ADMIN_ITEMS = [
@@ -28,6 +29,7 @@ const ADMIN_ITEMS = [
   { title: "Usuários", url: "/usuarios", icon: Users },
   { title: "Pacientes", url: "/pacientes", icon: UserRound },
   { title: "Prontuários", url: "/prontuarios", icon: FileText },
+  { title: "Mensagens", url: "/mensagens", icon: MessageCircle },
 ];
 
 const SECRETARIA_ITEMS = [
@@ -35,6 +37,7 @@ const SECRETARIA_ITEMS = [
   { title: "Consultas", url: "/consultas", icon: CalendarDays },
   { title: "Pacientes", url: "/pacientes", icon: UserRound },
   { title: "Aniversários", url: "/aniversarios", icon: Cake },
+  { title: "Mensagens", url: "/mensagens", icon: MessageCircle },
 ];
 
 const MEDICO_ITEMS = [

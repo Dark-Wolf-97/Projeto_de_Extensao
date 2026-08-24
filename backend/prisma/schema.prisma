@@ -21,6 +21,19 @@ enum StatusConsulta {
   CANCELADA
 }
 
+enum TipoMensagem {
+  CONFIRMACAO
+  LEMBRETE
+  ANIVERSARIO
+}
+
+enum StatusMensagem {
+  PENDENTE
+  ENVIADA
+  CANCELADA
+  FALHA
+}
+
 // ─── Models ───────────────────────────────────────────────────────────────────
 
 model User {
@@ -50,6 +63,7 @@ model Paciente {
   updatedAt      DateTime  @updatedAt
 
   consultas Consulta[]
+  mensagens Mensagem[]
 
   @@map("pacientes")
 }
@@ -72,6 +86,7 @@ model Consulta {
   updatedAt               DateTime       @updatedAt
 
   prontuario Prontuario?
+  mensagens  Mensagem[]
 
   @@map("consultas")
 }
@@ -88,4 +103,28 @@ model Prontuario {
   updatedAt   DateTime @updatedAt
 
   @@map("prontuarios")
+}
+
+model Mensagem {
+  id                Int             @id @default(autoincrement())
+  tipo              TipoMensagem
+  status            StatusMensagem  @default(PENDENTE)
+  pacienteId        Int
+  paciente          Paciente        @relation(fields: [pacienteId], references: [id])
+  consultaId        Int?
+  consulta          Consulta?       @relation(fields: [consultaId], references: [id])
+  telefone          String          @db.VarChar(20)
+  conteudo          String          @db.Text
+  agendadoPara      DateTime
+  enviadoEm         DateTime?
+  canceladoEm       DateTime?
+  whatsappMessageId String?         @db.VarChar(255)
+  erro              String?         @db.Text
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  @@index([status, agendadoPara])
+  @@index([pacienteId, tipo])
+  @@index([consultaId, tipo])
+  @@map("mensagens")
 }

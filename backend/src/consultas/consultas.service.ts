@@ -2,12 +2,15 @@ import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
+  Inject,
   Injectable,
   NotFoundException,
+  forwardRef,
 } from '@nestjs/common';
 import { Role, StatusConsulta } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { GoogleCalendarService } from '../google-calendar/google-calendar.service';
+import { MensagensService } from '../mensagens/mensagens.service';
 import { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
 import { CreateConsultaDto } from './dto/create-consulta.dto';
 import { UpdateConsultaDto } from './dto/update-consulta.dto';
@@ -23,6 +26,8 @@ export class ConsultasService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly googleCalendar: GoogleCalendarService,
+    @Inject(forwardRef(() => MensagensService))
+    private readonly mensagens: MensagensService,
   ) {}
 
   findAll() {
@@ -115,7 +120,18 @@ export class ConsultasService {
     });
 
     await this.googleCalendar.sincronizarSemInterromperPortal(consulta.id);
+    await this.agendarConfirmacaoSemInterromperPortal(consulta.id);
     return consulta;
+  }
+
+  private async agendarConfirmacaoSemInterromperPortal(
+    consultaId: number,
+  ): Promise<void> {
+    try {
+      await this.mensagens.agendarConfirmacao(consultaId);
+    } catch {
+      // A falha ao agendar a mensagem de confirmação nunca pode impedir o cadastro da consulta.
+    }
   }
 
   async update(id: number, dto: UpdateConsultaDto) {
