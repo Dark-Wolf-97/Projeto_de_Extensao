@@ -14,6 +14,14 @@ build/
 # Logs
 *.log
 
+# Backups e material criptográfico local
+backups/
+tmp/
+.pnpm-store/
+*.key
+*.pem
+portal-ca.crt
+
 # OS
 .DS_Store
 Thumbs.db

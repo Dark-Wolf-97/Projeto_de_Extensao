@@ -44,7 +44,7 @@ export default function Login() {
         localStorage.removeItem(STORAGE_KEY);
       }
 
-      login(response.user, response.token);
+      login(response.user);
       navigate('/home');
     } catch {
       setErro('E-mail ou senha inválidos');

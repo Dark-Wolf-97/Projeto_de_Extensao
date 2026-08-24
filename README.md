@@ -1,8 +1,9 @@
 # Portal ISG
 
-Sistema de gestão clínica com frontend React, API NestJS e banco MySQL. A execução
-integrada usa Docker Compose e publica somente o frontend na porta 80; o Nginx
-encaminha `/api` para o backend dentro da rede dos containers.
+Sistema de gestão clínica com frontend React, API NestJS, banco MySQL e worker
+isolado para `whatsapp-web.js`. A execução integrada usa Docker Compose e
+publica somente o Nginx nas portas 80/443; API, worker e banco não expõem portas
+no host.
 
 ## Execução local com Docker
 
@@ -15,10 +16,11 @@ encaminha `/api` para o backend dentro da rede dos containers.
 docker compose up --build -d
 ```
 
-Na máquina que hospeda o sistema, acesse `http://localhost`. Em outra máquina da
-mesma rede, acesse `http://IP_DA_MAQUINA`. A porta TCP 80 precisa estar liberada no
-firewall do host. O frontend usa `/api`, portanto não depende de `localhost` no
-JavaScript entregue ao navegador.
+Na máquina que hospeda o sistema, acesse `https://localhost`. Em outra máquina
+da mesma rede, use o hostname/IP configurado no `.env`. O frontend usa `/api`,
+portanto não depende de `localhost` no JavaScript entregue ao navegador. O guia
+completo de servidor Windows, certificado local, firewall e backup está em
+[`DEPLOY_WINDOWS.md`](DEPLOY_WINDOWS.md).
 
 `CORS_ORIGIN` só é necessário se a API for publicada e acessada diretamente por
 outra origem. Quando configurado, aceita uma lista de origens separadas por vírgula.
@@ -64,7 +66,7 @@ Com os containers em execução, preencha temporariamente as variáveis dos
 perfis desejados no `.env` da raiz e execute:
 
 ```bash
-docker compose exec backend node dist/src/seed.js
+docker compose exec api node dist/src/seed.js
 ```
 
 Após o cadastro, remova as variáveis preenchidas do `.env` e recrie o container
@@ -96,9 +98,10 @@ npm test -- --runInBand
 
 ## Mensageria
 
-A mensageria está explicitamente indisponível neste bloco. A próxima etapa deverá
-usar `whatsapp-web.js` com sessão persistente via `LocalAuth` em volume local
-protegido. Z-API não faz parte da solução.
+A mensageria usa `whatsapp-web.js` em um processo separado, com sessão
+persistente via `LocalAuth` no volume `whatsapp_session`. O QR Code fica na tela
+administrativa de Configurações. Z-API não faz parte da solução; consulte as
+limitações operacionais no guia de implantação.
 
 ## Google Agenda (Bloco 1.5)
 

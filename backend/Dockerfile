@@ -1,12 +1,9 @@
-# ─── Stage 1: build ───────────────────────────────────────────────────────────
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 
-# O whatsapp-web.js depende do puppeteer, que por padrão tenta baixar seu
-# próprio Chromium na instalação. Este estágio só compila TypeScript e roda
-# o prisma generate, não precisa de navegador nenhum.
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+ENV PUPPETEER_SKIP_DOWNLOAD=true
 
 COPY package*.json ./
 RUN npm ci
@@ -15,17 +12,13 @@ COPY . .
 RUN DATABASE_URL="mysql://dummy:dummy@localhost:3306/dummy" npx prisma generate
 RUN npm run build
 
-# ─── Stage 2: runtime ─────────────────────────────────────────────────────────
-FROM node:20-alpine AS runner
+FROM node:22-alpine AS runtime-base
 
 WORKDIR /app
 
-# Chromium real para o whatsapp-web.js (Puppeteer) rodar em produção.
-# Verifique o caminho do binário na imagem base no momento do build
-# (`apk info -L chromium | grep bin`), pois já mudou entre versões do Alpine.
-RUN apk add --no-cache chromium nss freetype freetype-dev harfbuzz ca-certificates ttf-freefont
+ENV NODE_ENV=production
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
-ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
+ENV PUPPETEER_SKIP_DOWNLOAD=true
 
 COPY package*.json ./
 RUN npm ci --omit=dev
@@ -38,4 +31,13 @@ COPY prisma.config.ts ./
 
 EXPOSE 3000
 
+FROM runtime-base AS api
+
 CMD ["sh", "-c", "npx prisma migrate deploy && exec node dist/src/main"]
+
+FROM runtime-base AS whatsapp-worker
+
+RUN apk add --no-cache chromium nss freetype harfbuzz ca-certificates ttf-freefont
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
+
+CMD ["node", "dist/src/main"]

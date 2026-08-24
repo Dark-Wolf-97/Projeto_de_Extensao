@@ -79,7 +79,6 @@ describe('Login', () => {
 
   it('deve chamar AuthService.login com email e senha ao submeter', async () => {
     mockAuthServiceLogin.mockResolvedValue({
-      token: 'tok',
       user: { id: 1, nome: 'Admin', email: 'admin@clinica.com', role: 'ADMIN' },
     });
 
@@ -100,7 +99,6 @@ describe('Login', () => {
 
   it('deve navegar para /home após login bem-sucedido', async () => {
     mockAuthServiceLogin.mockResolvedValue({
-      token: 'tok',
       user: { id: 1, nome: 'Admin', email: 'admin@clinica.com', role: 'ADMIN' },
     });
 
@@ -121,7 +119,6 @@ describe('Login', () => {
 
   it('deve salvar o e-mail no localStorage quando "Manter-me conectado" está marcado', async () => {
     mockAuthServiceLogin.mockResolvedValue({
-      token: 'tok',
       user: { id: 1, nome: 'Admin', email: 'admin@clinica.com', role: 'ADMIN' },
     });
 
@@ -144,7 +141,6 @@ describe('Login', () => {
   it('deve remover o e-mail do localStorage quando "Manter-me conectado" está desmarcado', async () => {
     localStorage.setItem('login_email_salvo', 'admin@clinica.com');
     mockAuthServiceLogin.mockResolvedValue({
-      token: 'tok',
       user: { id: 1, nome: 'Admin', email: 'admin@clinica.com', role: 'ADMIN' },
     });
 

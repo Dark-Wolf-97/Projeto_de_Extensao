@@ -10,6 +10,7 @@ export class MensagensCronService {
 
   @Cron('*/1 * * * *')
   async enviarPendentesDevidos(): Promise<void> {
+    if (!this.executarNesteProcesso()) return;
     try {
       await this.mensagens.enviarPendentesDevidos();
     } catch {
@@ -19,6 +20,7 @@ export class MensagensCronService {
 
   @Cron('0 8 * * *', { timeZone: FUSO })
   async agendarLembretes(): Promise<void> {
+    if (!this.executarNesteProcesso()) return;
     try {
       await this.mensagens.agendarLembretes();
     } catch {
@@ -28,10 +30,15 @@ export class MensagensCronService {
 
   @Cron('0 8 * * *', { timeZone: FUSO })
   async agendarAniversarios(): Promise<void> {
+    if (!this.executarNesteProcesso()) return;
     try {
       await this.mensagens.agendarAniversarios();
     } catch {
       // Idem.
     }
+  }
+
+  private executarNesteProcesso(): boolean {
+    return process.env.PROCESS_ROLE === 'whatsapp-worker';
   }
 }

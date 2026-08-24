@@ -4,13 +4,12 @@ type HttpOptions = RequestInit & { json?: unknown };
 
 export async function http<T>(path: string, options: HttpOptions = {}): Promise<T> {
   const { json, headers, ...rest } = options;
-  const token = localStorage.getItem('token');
 
   const res = await fetch(`${API_URL}${path}`, {
     ...rest,
+    credentials: 'include',
     headers: {
       ...(json !== undefined ? { 'Content-Type': 'application/json' } : {}),
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(headers || {}),
     },
     body: json !== undefined ? JSON.stringify(json) : undefined,

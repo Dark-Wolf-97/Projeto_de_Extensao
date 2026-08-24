@@ -3,7 +3,6 @@ import { http } from './http';
 export type Role = 'ADMIN' | 'SECRETARIA' | 'MEDICO';
 
 export interface LoginResponse {
-  token: string;
   user: {
     id: number;
     nome: string;
@@ -17,5 +16,9 @@ export const AuthService = {
     http<LoginResponse>('/auth/login', {
       method: 'POST',
       json: { email, senha },
+    }),
+  logout: (): Promise<void> =>
+    http<void>('/auth/logout', {
+      method: 'POST',
     }),
 };

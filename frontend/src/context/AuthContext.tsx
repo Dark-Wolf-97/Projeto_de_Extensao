@@ -1,5 +1,6 @@
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
 import type { Role } from '@/services/AuthService';
+import { AuthService } from '@/services/AuthService';
 
 export interface AuthUser {
   id: number;
@@ -10,8 +11,7 @@ export interface AuthUser {
 
 interface AuthContextType {
   user: AuthUser | null;
-  token: string | null;
-  login: (user: AuthUser, token: string) => void;
+  login: (user: AuthUser) => void;
   logout: () => void;
   updateUser: (data: Partial<AuthUser>) => void;
   isAdmin: () => boolean;
@@ -26,18 +26,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const stored = localStorage.getItem('user');
     return stored ? (JSON.parse(stored) as AuthUser) : null;
   });
-  const [token, setToken] = useState<string | null>(() => localStorage.getItem('token'));
+  useEffect(() => {
+    // Limpa tokens gravados por versões antigas; a sessão agora é HttpOnly.
+    localStorage.removeItem('token');
+  }, []);
 
-  const login = (userData: AuthUser, jwt: string) => {
+  const login = (userData: AuthUser) => {
     setUser(userData);
-    setToken(jwt);
     localStorage.setItem('user', JSON.stringify(userData));
-    localStorage.setItem('token', jwt);
   };
 
   const logout = () => {
+    void AuthService.logout().catch(() => undefined);
     setUser(null);
-    setToken(null);
     localStorage.removeItem('user');
     localStorage.removeItem('token');
   };
@@ -56,7 +57,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const isMedico = () => user?.role === 'MEDICO';
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, updateUser, isAdmin, isSecretaria, isMedico }}>
+    <AuthContext.Provider value={{ user, login, logout, updateUser, isAdmin, isSecretaria, isMedico }}>
       {children}
     </AuthContext.Provider>
   );
