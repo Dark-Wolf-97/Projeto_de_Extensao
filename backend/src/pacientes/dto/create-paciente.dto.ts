@@ -73,14 +73,14 @@ export class CreatePacienteDto {
   @Matches(/^[a-zA-ZÀ-ÿ\s]+$/, { message: 'Nome deve conter apenas letras' })
   nome!: string;
 
-  @IsNotEmpty({ message: 'CPF obrigatório' })
+  @IsOptional()
   @IsString()
   @MaxLength(14)
   @Matches(/^\d{3}\.\d{3}\.\d{3}-\d{2}$/, {
     message: 'CPF inválido. Use o formato 000.000.000-00',
   })
   @CpfValido()
-  cpf!: string;
+  cpf?: string;
 
   @IsNotEmpty({ message: 'Telefone obrigatório' })
   @IsString()
@@ -91,4 +91,9 @@ export class CreatePacienteDto {
   @IsDateString({}, { message: 'Data de nascimento inválida' })
   @MaxIdadeAnos(120)
   dataNascimento?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100, { message: 'Convênio pode ter no máximo 100 caracteres' })
+  convenio?: string;
 }

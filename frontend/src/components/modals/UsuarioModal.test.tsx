@@ -71,47 +71,47 @@ describe('UsuarioModal', () => {
     });
   });
 
-  describe('campos CRM e Especialidade', () => {
-    it('não deve exibir CRM e Especialidade quando perfil é ADMIN', () => {
+  describe('campos Registro Profissional e Especialidade', () => {
+    it('não deve exibir Registro Profissional e Especialidade quando perfil é ADMIN', () => {
       renderModal();
 
-      expect(screen.queryByLabelText('CRM')).not.toBeInTheDocument();
+      expect(screen.queryByLabelText('Registro Profissional (CRP/CREFITO)')).not.toBeInTheDocument();
       expect(screen.queryByLabelText('Especialidade')).not.toBeInTheDocument();
     });
 
-    it('não deve exibir CRM e Especialidade quando perfil é SECRETARIA', () => {
+    it('não deve exibir Registro Profissional e Especialidade quando perfil é SECRETARIA', () => {
       renderModal();
 
       fireEvent.change(screen.getByLabelText('Perfil'), {
         target: { value: 'SECRETARIA' },
       });
 
-      expect(screen.queryByLabelText('CRM')).not.toBeInTheDocument();
+      expect(screen.queryByLabelText('Registro Profissional (CRP/CREFITO)')).not.toBeInTheDocument();
       expect(screen.queryByLabelText('Especialidade')).not.toBeInTheDocument();
     });
 
-    it('deve exibir CRM e Especialidade quando perfil é MÉDICO', () => {
+    it('deve exibir Registro Profissional e Especialidade quando perfil é MÉDICO', () => {
       renderModal();
 
       fireEvent.change(screen.getByLabelText('Perfil'), {
         target: { value: 'MEDICO' },
       });
 
-      expect(screen.getByLabelText('CRM')).toBeInTheDocument();
+      expect(screen.getByLabelText('Registro Profissional (CRP/CREFITO)')).toBeInTheDocument();
       expect(screen.getByLabelText('Especialidade')).toBeInTheDocument();
     });
 
-    it('deve pré-preencher CRM e Especialidade ao editar um médico', () => {
+    it('deve pré-preencher Registro Profissional e Especialidade ao editar um médico', () => {
       renderModal({
         id: 2,
         nome: 'Dr. Carlos',
         email: 'medico@clinica.com',
         role: 'MEDICO',
-        crm: 'CRM-SP-12345',
+        crm: 'CRP 06/12345',
         especialidade: 'Clínica Geral',
       });
 
-      expect(screen.getByLabelText('CRM')).toHaveValue('CRM-SP-12345');
+      expect(screen.getByLabelText('Registro Profissional (CRP/CREFITO)')).toHaveValue('CRP 06/12345');
       expect(screen.getByLabelText('Especialidade')).toHaveValue('Clínica Geral');
     });
   });
@@ -131,7 +131,7 @@ describe('UsuarioModal', () => {
       expect(mockCriar).not.toHaveBeenCalled();
     });
 
-    it('deve bloquear o salvamento de médico sem CRM e especialidade', () => {
+    it('deve bloquear o salvamento de médico sem registro profissional e especialidade', () => {
       renderModal();
 
       fireEvent.change(screen.getByLabelText('Nome'), { target: { value: 'Dra. Ana' } });
@@ -267,15 +267,15 @@ describe('UsuarioModal', () => {
     });
   });
 
-  describe('máscara de CRM', () => {
-    it('deve formatar CRM enquanto digita', () => {
+  describe('campo Registro Profissional', () => {
+    it('deve aceitar o registro digitado livremente, sem aplicar máscara', () => {
       renderModal();
       fireEvent.change(screen.getByLabelText('Perfil'), { target: { value: 'MEDICO' } });
 
-      const input = screen.getByLabelText('CRM');
-      fireEvent.change(input, { target: { value: 'sp12345' } });
+      const input = screen.getByLabelText('Registro Profissional (CRP/CREFITO)');
+      fireEvent.change(input, { target: { value: 'CREFITO-3 12345-F' } });
 
-      expect(input).toHaveValue('CRM-SP-12345');
+      expect(input).toHaveValue('CREFITO-3 12345-F');
     });
   });
 });

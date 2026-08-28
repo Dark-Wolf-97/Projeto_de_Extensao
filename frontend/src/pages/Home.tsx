@@ -9,10 +9,10 @@ import { Badge } from "@/components/ui/badge";
 import {
   CalendarPlus, MessageSquare, FileText, Cake, Clock,
   CheckCircle2, AlertTriangle, CalendarCheck, CalendarClock,
-  Users, TrendingUp, XCircle, Activity,
+  Users, TrendingUp, XCircle, Activity, Inbox,
 } from "lucide-react";
 import {
-  BarChart, Bar, XAxis, YAxis, PieChart, Pie, Cell, Tooltip as RechartsTooltip,
+  BarChart, Bar, XAxis, YAxis, PieChart, Pie, Cell, CartesianGrid, Tooltip as RechartsTooltip,
 } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { ConsultaService, Consulta } from "@/services/ConsultaService";
@@ -92,7 +92,7 @@ function HomeAdmin() {
   const hoje = new Date();
   const mes = hoje.getMonth();
   const ano = hoje.getFullYear();
-  const diaAtual = hoje.getDate();
+  const diasNoMes = new Date(ano, mes + 1, 0).getDate();
 
   const consultasMes = consultas.filter((c) => {
     if (!c.data) return false;
@@ -104,8 +104,8 @@ function HomeAdmin() {
   const realizadas = consultasMes.filter((c) => c.status === "REALIZADA").length;
   const canceladas = consultasMes.filter((c) => c.status === "CANCELADA").length;
 
-  // Gráfico 1: consultas por dia do mês (do dia 1 até hoje)
-  const porDia = Array.from({ length: diaAtual }, (_, i) => {
+  // Gráfico 1: consultas por dia do mês (todos os dias, incluindo os futuros)
+  const porDia = Array.from({ length: diasNoMes }, (_, i) => {
     const dia = i + 1;
     return {
       dia: String(dia),
@@ -136,16 +136,14 @@ function HomeAdmin() {
     .sort((a, b) => b.total - a.total)
     .slice(0, 7);
 
-  // Gráfico 4: consultas por mês (últimos 6 meses)
-  const porMesArray = Array.from({ length: 6 }, (_, i) => {
-    const ref = new Date(hoje.getFullYear(), hoje.getMonth() - (5 - i), 1);
-    const m = ref.getMonth();
-    const a = ref.getFullYear();
+  // Gráfico 4: consultas por mês (todos os meses do ano atual)
+  const porMesArray = Array.from({ length: 12 }, (_, i) => {
+    const ref = new Date(ano, i, 1);
     const label = ref.toLocaleDateString("pt-BR", { month: "short" }).replace(".", "");
     const total = consultas.filter((c) => {
       if (!c.data) return false;
       const d = new Date(c.data.split("T")[0] + "T12:00:00");
-      return d.getMonth() === m && d.getFullYear() === a;
+      return d.getMonth() === i && d.getFullYear() === ano;
     }).length;
     return { mes: label, total };
   });
@@ -232,19 +230,21 @@ function HomeAdmin() {
           </CardHeader>
           <CardContent>
             {porDia.length === 0 ? (
-              <div className="h-[220px] flex items-center justify-center text-muted-foreground text-sm">
+              <div className="h-[220px] flex flex-col items-center justify-center gap-2 text-muted-foreground text-sm">
+                <Inbox className="h-8 w-8 opacity-40" />
                 Nenhuma consulta no mês
               </div>
             ) : (
               <ChartContainer
                 config={{ total: { label: "Consultas", color: "hsl(var(--primary))" } }}
-                className="h-[220px]"
+                className="h-[220px] w-full aspect-auto"
               >
                 <BarChart data={porDia} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
-                  <XAxis dataKey="dia" tick={{ fontSize: 10 }} />
-                  <YAxis tick={{ fontSize: 10 }} allowDecimals={false} />
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <Bar dataKey="total" fill="var(--color-total)" radius={[3, 3, 0, 0]} />
+                  <CartesianGrid vertical={false} stroke="#ccc" />
+                  <XAxis dataKey="dia" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 10 }} allowDecimals={false} axisLine={false} tickLine={false} />
+                  <ChartTooltip cursor={{ fill: "hsl(var(--muted))" }} content={<ChartTooltipContent />} />
+                  <Bar dataKey="total" fill="var(--color-total)" radius={[4, 4, 0, 0]} maxBarSize={24} />
                 </BarChart>
               </ChartContainer>
             )}
@@ -261,7 +261,8 @@ function HomeAdmin() {
           </CardHeader>
           <CardContent className="flex flex-col items-center gap-3">
             {porStatus.length === 0 ? (
-              <div className="h-[160px] flex items-center justify-center text-muted-foreground text-sm">
+              <div className="h-[160px] flex flex-col items-center justify-center gap-2 text-muted-foreground text-sm">
+                <Inbox className="h-8 w-8 opacity-40" />
                 Sem dados
               </div>
             ) : (
@@ -318,35 +319,39 @@ function HomeAdmin() {
           </CardHeader>
           <CardContent>
             {porMedico.length === 0 ? (
-              <div className="h-[200px] flex items-center justify-center text-muted-foreground text-sm">
+              <div className="h-[200px] flex flex-col items-center justify-center gap-2 text-muted-foreground text-sm">
+                <Inbox className="h-8 w-8 opacity-40" />
                 Nenhuma consulta no mês
               </div>
             ) : (
               <ChartContainer
                 config={{ total: { label: "Consultas", color: "hsl(var(--accent))" } }}
-                className="h-[200px]"
+                className="h-[200px] w-full aspect-auto"
               >
                 <BarChart
                   data={porMedico}
                   layout="vertical"
                   margin={{ top: 5, right: 20, left: 5, bottom: 5 }}
                 >
-                  <XAxis type="number" tick={{ fontSize: 10 }} allowDecimals={false} />
+                  <CartesianGrid horizontal={false} stroke="#ccc" />
+                  <XAxis type="number" tick={{ fontSize: 10 }} allowDecimals={false} axisLine={false} tickLine={false} />
                   <YAxis
                     type="category"
                     dataKey="medico"
                     tick={{ fontSize: 11 }}
                     width={130}
+                    axisLine={false}
+                    tickLine={false}
                   />
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <Bar dataKey="total" fill="var(--color-total)" radius={[0, 3, 3, 0]} />
+                  <ChartTooltip cursor={{ fill: "hsl(var(--muted))" }} content={<ChartTooltipContent />} />
+                  <Bar dataKey="total" fill="var(--color-total)" radius={[0, 4, 4, 0]} maxBarSize={24} />
                 </BarChart>
               </ChartContainer>
             )}
           </CardContent>
         </Card>
 
-        {/* Gráfico 4: consultas por mês (últimos 6 meses) */}
+        {/* Gráfico 4: consultas por mês (todos os meses do ano atual) */}
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-base">
@@ -357,13 +362,14 @@ function HomeAdmin() {
           <CardContent>
             <ChartContainer
               config={{ total: { label: "Consultas", color: "hsl(var(--primary))" } }}
-              className="h-[200px]"
+              className="h-[200px] w-full aspect-auto"
             >
               <BarChart data={porMesArray} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
-                <XAxis dataKey="mes" tick={{ fontSize: 10 }} />
-                <YAxis tick={{ fontSize: 10 }} allowDecimals={false} />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <Bar dataKey="total" fill="var(--color-total)" radius={[3, 3, 0, 0]} />
+                <CartesianGrid vertical={false} stroke="#ccc" />
+                <XAxis dataKey="mes" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 10 }} allowDecimals={false} axisLine={false} tickLine={false} />
+                <ChartTooltip cursor={{ fill: "hsl(var(--muted))" }} content={<ChartTooltipContent />} />
+                <Bar dataKey="total" fill="var(--color-total)" radius={[4, 4, 0, 0]} maxBarSize={24} />
               </BarChart>
             </ChartContainer>
           </CardContent>

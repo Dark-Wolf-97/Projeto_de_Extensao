@@ -46,11 +46,13 @@ export class PacientesService {
   }
 
   async criar(data: CreatePacienteDto) {
-    const existente = await this.prisma.paciente.findUnique({
-      where: { cpf: data.cpf },
-    });
-    if (existente)
-      throw new ConflictException('CPF já cadastrado para outro paciente');
+    if (data.cpf) {
+      const existente = await this.prisma.paciente.findUnique({
+        where: { cpf: data.cpf },
+      });
+      if (existente)
+        throw new ConflictException('CPF já cadastrado para outro paciente');
+    }
 
     return this.prisma.paciente.create({
       data: {
@@ -60,6 +62,7 @@ export class PacientesService {
         dataNascimento: data.dataNascimento
           ? new Date(data.dataNascimento)
           : null,
+        convenio: data.convenio,
       },
     });
   }
@@ -84,6 +87,7 @@ export class PacientesService {
         dataNascimento: data.dataNascimento
           ? new Date(data.dataNascimento)
           : null,
+        convenio: data.convenio,
       },
     });
   }

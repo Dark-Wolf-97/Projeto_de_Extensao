@@ -112,13 +112,14 @@ export default function Pacientes() {
                 <TableHead>CPF</TableHead>
                 <TableHead>Telefone</TableHead>
                 <TableHead>Nascimento</TableHead>
+                <TableHead>Convênio</TableHead>
                 <TableHead>Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {pacientes.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                     Nenhum paciente encontrado
                   </TableCell>
                 </TableRow>
@@ -133,9 +134,10 @@ export default function Pacientes() {
                         {p.nome}
                       </button>
                     </TableCell>
-                    <TableCell className="text-muted-foreground">{p.cpf}</TableCell>
+                    <TableCell className="text-muted-foreground">{p.cpf || "—"}</TableCell>
                     <TableCell>{p.telefone}</TableCell>
                     <TableCell>{formatData(p.dataNascimento)}</TableCell>
+                    <TableCell>{p.convenio || "—"}</TableCell>
                     <TableCell>
                       <div className="flex gap-2">
                         <Button

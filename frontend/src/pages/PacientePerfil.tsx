@@ -87,7 +87,7 @@ export default function PacientePerfil() {
             <dl className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div>
                 <dt className="text-xs text-muted-foreground uppercase tracking-wide">CPF</dt>
-                <dd className="font-medium mt-1">{perfil.cpf}</dd>
+                <dd className="font-medium mt-1">{perfil.cpf || "—"}</dd>
               </div>
               <div>
                 <dt className="text-xs text-muted-foreground uppercase tracking-wide">Telefone</dt>
@@ -96,6 +96,10 @@ export default function PacientePerfil() {
               <div>
                 <dt className="text-xs text-muted-foreground uppercase tracking-wide">Nascimento</dt>
                 <dd className="font-medium mt-1">{formatData(perfil.dataNascimento)}</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-muted-foreground uppercase tracking-wide">Convênio</dt>
+                <dd className="font-medium mt-1">{perfil.convenio || "—"}</dd>
               </div>
               <div>
                 <dt className="text-xs text-muted-foreground uppercase tracking-wide">Consultas</dt>

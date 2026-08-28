@@ -229,7 +229,7 @@ export class GoogleCalendarService {
       paciente: {
         id: number;
         nome: string;
-        cpf: string;
+        cpf: string | null;
         telefone: string;
       };
       medico: {
@@ -257,10 +257,10 @@ export class GoogleCalendarService {
         'Consulta do Portal ISG',
         `ID da consulta: ${consulta.id}`,
         `Paciente: ${consulta.paciente.nome}`,
-        `CPF: ${consulta.paciente.cpf}`,
+        `CPF: ${consulta.paciente.cpf ?? 'Não informado'}`,
         `WhatsApp/telefone do paciente: ${consulta.paciente.telefone}`,
         `Médico: ${consulta.medico.nome}`,
-        `CRM: ${consulta.medico.crm ?? 'Não informado'}`,
+        `Registro profissional: ${consulta.medico.crm ?? 'Não informado'}`,
         `Especialidade: ${consulta.medico.especialidade ?? 'Não informada'}`,
         `Telefone do médico: ${consulta.medico.telefone ?? 'Não informado'}`,
         `Data: ${this.formatDate(date)}`,

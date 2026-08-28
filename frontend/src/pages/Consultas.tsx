@@ -83,21 +83,23 @@ type AcaoConsultaButtonProps = Omit<ComponentProps<typeof Button>, "size" | "tit
 
 function AcaoConsultaButton({ label, children, className, ...props }: AcaoConsultaButtonProps) {
   return (
-    <Button
-      {...props}
-      size="icon"
-      title={label}
-      aria-label={props["aria-label"] ?? label}
-      className={cn(
-        "group h-7 w-7 justify-start overflow-hidden px-1.5 transition-[width,padding] duration-200 hover:w-64 hover:px-2 focus-visible:w-64 focus-visible:px-2",
-        className,
-      )}
-    >
-      <span className="shrink-0">{children}</span>
-      <span className="ml-0 max-w-0 overflow-hidden whitespace-nowrap text-xs opacity-0 transition-[max-width,margin,opacity] duration-200 group-hover:ml-1.5 group-hover:max-w-52 group-hover:opacity-100 group-focus-visible:ml-1.5 group-focus-visible:max-w-52 group-focus-visible:opacity-100">
-        {label}
-      </span>
-    </Button>
+    <span className="relative inline-block h-8 w-8">
+      <Button
+        {...props}
+        size="icon"
+        title={label}
+        aria-label={props["aria-label"] ?? label}
+        className={cn(
+          "group absolute left-0 top-0 h-8 w-8 justify-start overflow-hidden px-2 transition-[width,padding] duration-200 hover:z-10 hover:w-64 hover:px-2.5 focus-visible:z-10 focus-visible:w-64 focus-visible:px-2.5",
+          className,
+        )}
+      >
+        <span className="shrink-0">{children}</span>
+        <span className="ml-0 max-w-0 overflow-hidden whitespace-nowrap text-xs opacity-0 transition-[max-width,margin,opacity] duration-200 group-hover:ml-1.5 group-hover:max-w-52 group-hover:opacity-100 group-focus-visible:ml-1.5 group-focus-visible:max-w-52 group-focus-visible:opacity-100">
+          {label}
+        </span>
+      </Button>
+    </span>
   );
 }
 
@@ -348,7 +350,7 @@ export default function Consultas() {
                       {/* Ações do MEDICO */}
                       {medicoView && (
                         <TableCell>
-                          <div className="flex flex-wrap gap-2">
+                          <div className="flex flex-wrap gap-4">
                             <AcaoConsultaButton
                               label="Ver / criar prontuário"
                               variant="outline"
@@ -373,7 +375,7 @@ export default function Consultas() {
                       {/* Ações do ADMIN / SECRETARIA */}
                       {podeGerenciar && (
                         <TableCell>
-                          <div className="flex flex-wrap gap-1.5 items-center">
+                          <div className="flex flex-wrap gap-4 items-center">
                             {isAdmin() && (
                               <AcaoConsultaButton
                                 label="Ver / criar prontuário"
@@ -381,7 +383,7 @@ export default function Consultas() {
                                 aria-label={`Gerenciar prontuário de ${c.paciente?.nome ?? "paciente"}`}
                                 onClick={() => handleProntuario(c)}
                               >
-                                <FileText className="h-3.5 w-3.5" />
+                                <FileText className="h-4 w-4" />
                               </AcaoConsultaButton>
                             )}
                             {isAdmin() && (c.status === "AGENDADA" || c.status === "CONFIRMADA") && (
@@ -392,7 +394,7 @@ export default function Consultas() {
                                 aria-label={`Marcar consulta de ${c.paciente?.nome ?? "paciente"} como realizada`}
                                 onClick={() => handleRealizar(c)}
                               >
-                                <CheckCircle2 className="h-3.5 w-3.5" />
+                                <CheckCircle2 className="h-4 w-4" />
                               </AcaoConsultaButton>
                             )}
                             {googleCalendarEventLink && (
@@ -403,7 +405,7 @@ export default function Consultas() {
                                 aria-label={`Abrir card da agenda de ${c.paciente?.nome ?? "paciente"}`}
                                 onClick={() => window.open(googleCalendarEventLink, "_blank", "noopener,noreferrer")}
                               >
-                                <ExternalLink className="h-3.5 w-3.5" />
+                                <ExternalLink className="h-4 w-4" />
                               </AcaoConsultaButton>
                             )}
                             <AcaoConsultaButton
@@ -413,9 +415,9 @@ export default function Consultas() {
                               onClick={() => handleRecadastrarNaAgenda(c)}
                             >
                               {sincronizandoId === c.id ? (
-                                <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
+                                <LoaderCircle className="h-4 w-4 animate-spin" />
                               ) : (
-                                <CalendarPlus className="h-3.5 w-3.5" />
+                                <CalendarPlus className="h-4 w-4" />
                               )}
                             </AcaoConsultaButton>
                             <AcaoConsultaButton
@@ -424,7 +426,7 @@ export default function Consultas() {
                               aria-label={`Editar consulta de ${c.paciente?.nome ?? "paciente"}`}
                               onClick={() => handleEditar(c)}
                             >
-                              <Edit className="h-3.5 w-3.5" />
+                              <Edit className="h-4 w-4" />
                             </AcaoConsultaButton>
                             <AcaoConsultaButton
                               label="Excluir consulta"
@@ -433,7 +435,7 @@ export default function Consultas() {
                               aria-label={`Excluir consulta de ${c.paciente?.nome ?? "paciente"}`}
                               onClick={() => handleDeletar(c)}
                             >
-                              <Trash2 className="h-3.5 w-3.5" />
+                              <Trash2 className="h-4 w-4" />
                             </AcaoConsultaButton>
                             {isSecretaria() && (
                               <AcaoConsultaButton
@@ -450,7 +452,7 @@ export default function Consultas() {
                                   )
                                 }
                               >
-                                <MessageCircle className="h-3.5 w-3.5" />
+                                <MessageCircle className="h-4 w-4" />
                               </AcaoConsultaButton>
                             )}
                             <AcaoConsultaButton
@@ -472,7 +474,7 @@ export default function Consultas() {
                                 })
                               }
                             >
-                              <CheckCircle2 className="h-3.5 w-3.5" />
+                              <CheckCircle2 className="h-4 w-4" />
                             </AcaoConsultaButton>
                             <AcaoConsultaButton
                               label="Cancelar Consulta"
@@ -493,7 +495,7 @@ export default function Consultas() {
                                 })
                               }
                             >
-                              <XCircle className="h-3.5 w-3.5" />
+                              <XCircle className="h-4 w-4" />
                             </AcaoConsultaButton>
                           </div>
                         </TableCell>

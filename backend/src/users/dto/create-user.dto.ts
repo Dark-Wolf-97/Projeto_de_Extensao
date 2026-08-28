@@ -36,9 +36,11 @@ export class CreateUserDto {
   role!: Role;
 
   @ValidateIf((o) => o.role === Role.MEDICO)
-  @IsNotEmpty({ message: 'CRM é obrigatório para médicos' })
+  @IsNotEmpty({ message: 'Registro profissional (CRP/CREFITO) é obrigatório' })
   @IsString()
-  @MaxLength(20, { message: 'CRM pode ter no máximo 20 caracteres' })
+  @MaxLength(20, {
+    message: 'Registro profissional pode ter no máximo 20 caracteres',
+  })
   crm?: string;
 
   @ValidateIf((o) => o.role === Role.MEDICO)

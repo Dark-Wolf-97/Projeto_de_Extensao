@@ -57,7 +57,7 @@ interface Props {
   paciente?: Paciente | null;
 }
 
-const FORM_INICIAL = { nome: "", cpf: "", telefone: "", dataNascimento: "" };
+const FORM_INICIAL = { nome: "", cpf: "", telefone: "", dataNascimento: "", convenio: "" };
 
 function getDateLimits() {
   const today = new Date();
@@ -77,11 +77,12 @@ export function NovoPacienteModal({ open, onOpenChange, onSaved, paciente }: Pro
     if (paciente) {
       setForm({
         nome: paciente.nome,
-        cpf: formatCpf(paciente.cpf),
+        cpf: formatCpf(paciente.cpf ?? ""),
         telefone: formatTelefone(paciente.telefone),
         dataNascimento: paciente.dataNascimento
           ? paciente.dataNascimento.split("T")[0]
           : "",
+        convenio: paciente.convenio ?? "",
       });
     } else {
       setForm(FORM_INICIAL);
@@ -93,16 +94,16 @@ export function NovoPacienteModal({ open, onOpenChange, onSaved, paciente }: Pro
 
   const isEdit = !!paciente?.id;
 
-  const cpfCompleto = form.cpf.replace(/\D/g, "").length === 11;
-  const cpfInvalido = cpfCompleto && !validarCpf(form.cpf);
+  const cpfPreenchido = form.cpf.replace(/\D/g, "").length > 0;
+  const cpfInvalido = cpfPreenchido && !validarCpf(form.cpf);
   const telefoneValido = [10, 11].includes(form.telefone.replace(/\D/g, "").length);
   const telefoneInvalido = Boolean(form.telefone) && !telefoneValido;
-  const canSubmit = Boolean(form.nome.trim()) && validarCpf(form.cpf) && telefoneValido;
+  const canSubmit = Boolean(form.nome.trim()) && !cpfInvalido && telefoneValido;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!validarCpf(form.cpf)) {
+    if (cpfInvalido) {
       toast.error("CPF inválido");
       return;
     }
@@ -112,9 +113,10 @@ export function NovoPacienteModal({ open, onOpenChange, onSaved, paciente }: Pro
     try {
       const payload = {
         nome: form.nome,
-        cpf: form.cpf,
+        cpf: form.cpf ? form.cpf : null,
         telefone: form.telefone,
         dataNascimento: form.dataNascimento || undefined,
+        convenio: form.convenio ? form.convenio : null,
       };
 
       if (isEdit) {
@@ -169,14 +171,13 @@ export function NovoPacienteModal({ open, onOpenChange, onSaved, paciente }: Pro
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="cpf" className="after:ml-1 after:text-destructive after:content-['*']">CPF</Label>
+            <Label htmlFor="cpf">CPF</Label>
             <Input
               id="cpf"
               value={form.cpf}
               onChange={(e) => set("cpf", formatCpf(e.target.value))}
               placeholder="000.000.000-00"
               inputMode="numeric"
-              required
               maxLength={14}
               className={cpfInvalido ? "border-destructive focus-visible:ring-destructive" : ""}
             />
@@ -209,6 +210,17 @@ export function NovoPacienteModal({ open, onOpenChange, onSaved, paciente }: Pro
               onChange={(e) => set("dataNascimento", e.target.value)}
               min={getDateLimits().min}
               max={getDateLimits().max}
+            />
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="convenio">Convênio</Label>
+            <Input
+              id="convenio"
+              value={form.convenio}
+              onChange={(e) => set("convenio", e.target.value)}
+              placeholder="Ex: Unimed, Particular"
+              maxLength={100}
             />
           </div>
           </div>

@@ -56,9 +56,10 @@ model User {
 model Paciente {
   id             Int       @id @default(autoincrement())
   nome           String    @db.VarChar(100)
-  cpf            String    @unique @db.VarChar(14)
+  cpf            String?   @unique @db.VarChar(14)
   telefone       String    @db.VarChar(20)
   dataNascimento DateTime?
+  convenio       String?   @db.VarChar(100)
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 

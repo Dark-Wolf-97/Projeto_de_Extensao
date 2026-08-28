@@ -3,9 +3,10 @@ import { http } from "./http";
 export interface Paciente {
   id?: number;
   nome: string;
-  cpf: string;
+  cpf?: string | null;
   telefone: string;
   dataNascimento?: string;
+  convenio?: string | null;
   createdAt?: string;
   updatedAt?: string;
 }

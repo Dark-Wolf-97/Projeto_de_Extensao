@@ -35,7 +35,8 @@ export class UsersService {
       const crmExiste = await this.prisma.user.findUnique({
         where: { crm: dto.crm },
       });
-      if (crmExiste) throw new ConflictException('CRM já cadastrado');
+      if (crmExiste)
+        throw new ConflictException('Registro profissional já cadastrado');
     }
 
     const senhaHash = await bcrypt.hash(dto.senha, 10);
@@ -100,7 +101,8 @@ export class UsersService {
       const crmExiste = await this.prisma.user.findFirst({
         where: { crm: dto.crm, NOT: { id } },
       });
-      if (crmExiste) throw new ConflictException('CRM já cadastrado');
+      if (crmExiste)
+        throw new ConflictException('Registro profissional já cadastrado');
     }
 
     const data: Prisma.UserUpdateInput = {

@@ -60,16 +60,6 @@ function formatTelefone(value: string): string {
   return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
 }
 
-function formatCrm(value: string): string {
-  const withoutPrefix = value.toUpperCase().replace(/^CRM[-\s]?/, "");
-  const sanitized = withoutPrefix.replace(/[^A-Z0-9]/g, "");
-  const uf = sanitized.slice(0, 2).replace(/[^A-Z]/g, "");
-  const numero = sanitized.slice(2).replace(/\D/g, "").slice(0, 6);
-
-  if (uf.length < 2) return sanitized.slice(0, 2);
-  return `CRM-${uf}${numero ? `-${numero}` : ""}`;
-}
-
 interface FormDados {
   nome: string;
   email: string;
@@ -292,12 +282,12 @@ export default function Configuracoes() {
                     <Separator />
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="grid gap-2">
-                        <Label htmlFor="crm">CRM</Label>
+                        <Label htmlFor="crm">Registro Profissional (CRP/CREFITO)</Label>
                         <Input
                           id="crm"
                           value={dados.crm}
-                          onChange={(e) => set("crm", formatCrm(e.target.value))}
-                          placeholder="CRM-PR-12345"
+                          onChange={(e) => set("crm", e.target.value)}
+                          placeholder="Ex: CRP 06/12345 ou CREFITO-3 12345-F"
                           maxLength={20}
                         />
                       </div>

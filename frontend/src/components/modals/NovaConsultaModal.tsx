@@ -269,7 +269,7 @@ export function NovaConsultaModal({ open, onOpenChange, onSaved, consulta }: Pro
                   >
                     <div className="font-medium text-sm">{m.nome}</div>
                     <div className="text-xs text-muted-foreground">
-                      {m.crm && <span>CRM: {m.crm}</span>}
+                      {m.crm && <span>Registro: {m.crm}</span>}
                       {m.crm && m.especialidade && <span> · </span>}
                       {m.especialidade && <span>{m.especialidade}</span>}
                     </div>
@@ -280,7 +280,7 @@ export function NovaConsultaModal({ open, onOpenChange, onSaved, consulta }: Pro
             {medicoSelecionado && (
               <p className="text-xs text-emerald-700">
                 Médico selecionado: {medicoSelecionado.nome}
-                {medicoSelecionado.crm && ` — CRM: ${medicoSelecionado.crm}`}
+                {medicoSelecionado.crm && ` — Registro: ${medicoSelecionado.crm}`}
               </p>
             )}
           </div>

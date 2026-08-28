@@ -135,7 +135,9 @@ describe('GoogleCalendarService', () => {
     expect(request.requestBody.description).toContain(
       'Médico: Dr. Carlos Souza',
     );
-    expect(request.requestBody.description).toContain('CRM: CRM-1234');
+    expect(request.requestBody.description).toContain(
+      'Registro profissional: CRM-1234',
+    );
     expect(request.requestBody.description).toContain('Data: 20/10/2027');
     expect(request.requestBody.description).toContain('Hora: 14:30');
     expect(request.requestBody.description).toContain('Status: Confirmada');

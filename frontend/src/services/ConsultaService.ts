@@ -6,7 +6,7 @@ export interface Consulta {
   id?: number;
   pacienteId: number;
   medicoId: number;
-  paciente?: { id: number; nome: string; cpf: string; telefone?: string };
+  paciente?: { id: number; nome: string; cpf?: string; telefone?: string };
   medico?: { id: number; nome: string; crm?: string; especialidade?: string };
   prontuario?: { id: number } | null;
   data: string;

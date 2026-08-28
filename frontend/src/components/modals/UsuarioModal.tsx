@@ -37,16 +37,6 @@ function formatTelefone(value: string): string {
   return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
 }
 
-function formatCrm(value: string): string {
-  const withoutPrefix = value.toUpperCase().replace(/^CRM[-\s]?/, "");
-  const sanitized = withoutPrefix.replace(/[^A-Z0-9]/g, "");
-  const uf = sanitized.slice(0, 2).replace(/[^A-Z]/g, "");
-  const numero = sanitized.slice(2).replace(/\D/g, "").slice(0, 6);
-
-  if (uf.length < 2) return sanitized.slice(0, 2);
-  return `CRM-${uf}${numero ? `-${numero}` : ""}`;
-}
-
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -154,7 +144,7 @@ export function UsuarioModal({ open, onOpenChange, onSaved, usuario }: Props) {
   const isMedico = form.role === "MEDICO";
   const senhaValida = !form.senha || SENHA_REQUISITOS.every((requisito) => requisito.ok(form.senha!));
   const emailValido = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email);
-  const crmValido = /^CRM-[A-Z]{2}-\d{4,6}$/.test(form.crm ?? "");
+  const crmValido = Boolean(form.crm?.trim());
   const camposObrigatoriosPreenchidos =
     Boolean(form.nome.trim()) &&
     emailValido &&
@@ -259,12 +249,12 @@ export function UsuarioModal({ open, onOpenChange, onSaved, usuario }: Props) {
           {isMedico && (
             <>
               <div className="grid gap-2">
-                <Label htmlFor="crm" className="after:ml-1 after:text-destructive after:content-['*']">CRM</Label>
+                <Label htmlFor="crm" className="after:ml-1 after:text-destructive after:content-['*']">Registro Profissional (CRP/CREFITO)</Label>
                 <Input
                   id="crm"
                   value={form.crm ?? ""}
-                  onChange={(e) => set("crm", formatCrm(e.target.value))}
-                  placeholder="CRM-SP-12345"
+                  onChange={(e) => set("crm", e.target.value)}
+                  placeholder="Ex: CRP 06/12345 ou CREFITO-3 12345-F"
                   maxLength={20}
                   required
                 />
