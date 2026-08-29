@@ -54,9 +54,29 @@ export default function Pacientes() {
   const handleNovo = () => { setSelecionado(null); setOpen(true); };
   const handleEditar = (p: Paciente) => { setSelecionado(p); setOpen(true); };
 
-  const handleDeletar = (p: Paciente) => {
+  const handleDeletar = async (p: Paciente) => {
+    let descricao = `Deseja remover o paciente ${p.nome}? Esta ação não pode ser desfeita.`;
+
+    if (p.id) {
+      try {
+        const { total, ativas } = await PacienteService.contarConsultasVinculadas(p.id);
+        if (ativas > 0) {
+          toast.error(
+            `Não é possível excluir ${p.nome}: há ${ativas} consulta(s) agendada(s) ou confirmada(s) vinculada(s) a ele. Cancele ou finalize essas consultas antes de excluir.`,
+          );
+          return;
+        }
+        if (total > 0) {
+          descricao = `O paciente ${p.nome} possui ${total} consulta(s) registrada(s) (já canceladas ou realizadas). Ao excluir este paciente, você vai perder todo o histórico de consultas e os prontuários vinculados a elas — essa ação não pode ser desfeita. Deseja continuar?`;
+        }
+      } catch (err) {
+        toast.error(err);
+        return;
+      }
+    }
+
     setConfirmar({
-      descricao: `Deseja remover o paciente ${p.nome}? Esta ação não pode ser desfeita.`,
+      descricao,
       acao: async () => {
         try {
           await PacienteService.deletar(p.id!);

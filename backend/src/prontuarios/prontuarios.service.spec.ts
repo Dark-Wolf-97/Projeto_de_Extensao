@@ -43,12 +43,12 @@ const prontuario = {
   consultaId: consulta.id,
   anamnese: 'Conteúdo clínico',
   diagnostico: null,
-  prescricao: null,
-  observacoes: null,
+  evolucao: null,
   createdAt: new Date(),
   updatedAt: new Date(),
   consulta: {
     id: consulta.id,
+    medicoId: medico.id,
     paciente: { id: 30, nome: 'Paciente', cpf: '000.000.000-00' },
     medico: { id: medico.id, nome: 'Médico', especialidade: 'Clínica' },
   },
@@ -198,6 +198,30 @@ describe('ProntuariosService', () => {
       await expect(service.findOne(999, medico)).rejects.toThrow(
         NotFoundException,
       );
+    });
+
+    it('deve permitir consulta por administrador quando o médico da consulta foi excluído', async () => {
+      const prontuarioSemMedico = {
+        ...prontuario,
+        consulta: { ...prontuario.consulta, medicoId: null, medico: null },
+      };
+      prisma.prontuario.findUnique.mockResolvedValue(prontuarioSemMedico);
+
+      await expect(
+        service.findOne(prontuario.id, admin),
+      ).resolves.toEqual(prontuarioSemMedico);
+    });
+
+    it('deve retornar 403 para médico quando o médico da consulta foi excluído', async () => {
+      const prontuarioSemMedico = {
+        ...prontuario,
+        consulta: { ...prontuario.consulta, medicoId: null, medico: null },
+      };
+      prisma.prontuario.findUnique.mockResolvedValue(prontuarioSemMedico);
+
+      await expect(
+        service.findOne(prontuario.id, medico),
+      ).rejects.toThrow(ForbiddenException);
     });
   });
 

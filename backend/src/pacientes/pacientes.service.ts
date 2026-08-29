@@ -3,13 +3,18 @@ import {
   NotFoundException,
   ConflictException,
 } from '@nestjs/common';
+import { StatusConsulta } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { GoogleCalendarService } from '../google-calendar/google-calendar.service';
 import { CreatePacienteDto } from './dto/create-paciente.dto';
 import { UpdatePacienteDto } from './dto/update-paciente.dto';
 
 @Injectable()
 export class PacientesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private readonly googleCalendar: GoogleCalendarService,
+  ) {}
 
   listar() {
     return this.prisma.paciente.findMany({ orderBy: { nome: 'asc' } });
@@ -92,15 +97,49 @@ export class PacientesService {
     });
   }
 
+  async contarConsultasVinculadas(
+    id: number,
+  ): Promise<{ total: number; ativas: number }> {
+    await this.findOne(id);
+    const [total, ativas] = await Promise.all([
+      this.prisma.consulta.count({ where: { pacienteId: id } }),
+      this.prisma.consulta.count({
+        where: {
+          pacienteId: id,
+          status: { in: [StatusConsulta.AGENDADA, StatusConsulta.CONFIRMADA] },
+        },
+      }),
+    ]);
+    return { total, ativas };
+  }
+
   async remover(id: number) {
     await this.findOne(id);
 
-    const consultasVinculadas = await this.prisma.consulta.count({
-      where: { pacienteId: id },
+    const consultasAtivas = await this.prisma.consulta.count({
+      where: {
+        pacienteId: id,
+        status: { in: [StatusConsulta.AGENDADA, StatusConsulta.CONFIRMADA] },
+      },
     });
-    if (consultasVinculadas > 0) {
+    if (consultasAtivas > 0) {
       throw new ConflictException(
-        'Não é possível excluir o paciente porque existem consultas vinculadas. Mantenha o cadastro para preservar o histórico clínico; consultas futuras podem ser canceladas.',
+        'Não é possível excluir o paciente porque existem consultas agendadas ou confirmadas vinculadas a ele. Cancele ou finalize essas consultas antes de excluir.',
+      );
+    }
+
+    // A esta altura só restam consultas canceladas ou realizadas. Excluir o
+    // paciente apaga em cascata essas consultas, seus prontuários e as
+    // mensagens vinculadas (histórico clínico completo). Os eventos do
+    // Google Calendar de cada consulta são removidos aqui, pois a exclusão
+    // em cascata acontece direto no banco, sem passar pelo ConsultasService.
+    const consultas = await this.prisma.consulta.findMany({
+      where: { pacienteId: id },
+      select: { googleCalendarEventId: true },
+    });
+    for (const consulta of consultas) {
+      await this.googleCalendar.removerEventoSemInterromperPortal(
+        consulta.googleCalendarEventId,
       );
     }
 

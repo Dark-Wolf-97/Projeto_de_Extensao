@@ -22,6 +22,11 @@ export interface MedicoResumo {
   especialidade?: string;
 }
 
+export interface ConsultasVinculadas {
+  total: number;
+  ativas: number;
+}
+
 export const UsuarioService = {
   listar: (): Promise<Usuario[]> => http<Usuario[]>("/users"),
 
@@ -40,6 +45,9 @@ export const UsuarioService = {
 
   deletar: (id: number): Promise<void> =>
     http<void>(`/users/${id}`, { method: "DELETE" }),
+
+  contarConsultasVinculadas: (id: number): Promise<ConsultasVinculadas> =>
+    http<ConsultasVinculadas>(`/users/${id}/consultas-vinculadas`),
 
   me: (): Promise<Usuario> => http<Usuario>("/users/me"),
 

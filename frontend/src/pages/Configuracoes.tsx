@@ -12,7 +12,7 @@ import { WhatsappService, WhatsappStatusResponse } from "@/services/WhatsappServ
 import { useAuth } from "@/context/AuthContext";
 import { httpErrorMessage } from "@/services/http";
 import { toast } from "@/components/ui/sonner";
-import { Check, KeyRound, MessageCircle, User, X } from "lucide-react";
+import { Check, Eye, EyeOff, KeyRound, MessageCircle, User, X } from "lucide-react";
 
 const WHATSAPP_STATUS_LABEL: Record<WhatsappStatusResponse["status"], string> = {
   DESCONECTADO: "Desconectado",
@@ -83,6 +83,8 @@ export default function Configuracoes() {
   const [role, setRole] = useState("");
   const [salvandoDados, setSalvandoDados] = useState(false);
   const [salvandoSenha, setSalvandoSenha] = useState(false);
+  const [mostrarNovaSenha, setMostrarNovaSenha] = useState(false);
+  const [mostrarConfirmar, setMostrarConfirmar] = useState(false);
 
   const [whatsapp, setWhatsapp] = useState<WhatsappStatusResponse>({
     status: "DESCONECTADO",
@@ -328,23 +330,47 @@ export default function Configuracoes() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="grid gap-2">
                     <Label htmlFor="novaSenha">Nova senha</Label>
-                    <Input
-                      id="novaSenha"
-                      type="password"
-                      value={senha.novaSenha}
-                      onChange={(e) => setSenha((s) => ({ ...s, novaSenha: e.target.value }))}
-                      placeholder="••••••••"
-                    />
+                    <div className="relative">
+                      <Input
+                        id="novaSenha"
+                        type={mostrarNovaSenha ? "text" : "password"}
+                        value={senha.novaSenha}
+                        onChange={(e) => setSenha((s) => ({ ...s, novaSenha: e.target.value }))}
+                        placeholder="••••••••"
+                        className="pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setMostrarNovaSenha((v) => !v)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        tabIndex={-1}
+                        aria-label={mostrarNovaSenha ? "Ocultar nova senha" : "Mostrar nova senha"}
+                      >
+                        {mostrarNovaSenha ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="confirmar">Confirmar nova senha</Label>
-                    <Input
-                      id="confirmar"
-                      type="password"
-                      value={senha.confirmar}
-                      onChange={(e) => setSenha((s) => ({ ...s, confirmar: e.target.value }))}
-                      placeholder="Repita a nova senha"
-                    />
+                    <div className="relative">
+                      <Input
+                        id="confirmar"
+                        type={mostrarConfirmar ? "text" : "password"}
+                        value={senha.confirmar}
+                        onChange={(e) => setSenha((s) => ({ ...s, confirmar: e.target.value }))}
+                        placeholder="Repita a nova senha"
+                        className="pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setMostrarConfirmar((v) => !v)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        tabIndex={-1}
+                        aria-label={mostrarConfirmar ? "Ocultar confirmação de senha" : "Mostrar confirmação de senha"}
+                      >
+                        {mostrarConfirmar ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
                   </div>
                 </div>
 

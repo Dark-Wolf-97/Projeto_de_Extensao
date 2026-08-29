@@ -238,7 +238,7 @@ export class GoogleCalendarService {
         crm: string | null;
         especialidade: string | null;
         telefone: string | null;
-      };
+      } | null;
       prontuario: { id: number } | null;
     },
     config: GoogleCalendarConfig,
@@ -252,17 +252,17 @@ export class GoogleCalendarService {
     );
 
     return {
-      summary: `[Portal] ${this.firstName(consulta.medico.nome)} - ${this.firstName(consulta.paciente.nome)}`,
+      summary: `[Portal] ${consulta.medico ? this.firstName(consulta.medico.nome) : 'Sem médico'} - ${this.firstName(consulta.paciente.nome)}`,
       description: [
         'Consulta do Portal ISG',
         `ID da consulta: ${consulta.id}`,
         `Paciente: ${consulta.paciente.nome}`,
         `CPF: ${consulta.paciente.cpf ?? 'Não informado'}`,
         `WhatsApp/telefone do paciente: ${consulta.paciente.telefone}`,
-        `Médico: ${consulta.medico.nome}`,
-        `Registro profissional: ${consulta.medico.crm ?? 'Não informado'}`,
-        `Especialidade: ${consulta.medico.especialidade ?? 'Não informada'}`,
-        `Telefone do médico: ${consulta.medico.telefone ?? 'Não informado'}`,
+        `Médico: ${consulta.medico?.nome ?? 'Médico removido do sistema'}`,
+        `Registro profissional: ${consulta.medico?.crm ?? 'Não informado'}`,
+        `Especialidade: ${consulta.medico?.especialidade ?? 'Não informada'}`,
+        `Telefone do médico: ${consulta.medico?.telefone ?? 'Não informado'}`,
         `Data: ${this.formatDate(date)}`,
         `Hora: ${consulta.hora}`,
         `Status: ${this.statusLabel(consulta.status)}`,

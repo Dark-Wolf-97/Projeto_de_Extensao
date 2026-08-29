@@ -63,6 +63,12 @@ export class UsersController {
     return this.usersService.findOne(Number(id));
   }
 
+  @Get(':id/consultas-vinculadas')
+  @Roles(Role.ADMIN)
+  contarConsultasVinculadas(@Param('id') id: string) {
+    return this.usersService.contarConsultasVinculadas(Number(id));
+  }
+
   @Put(':id')
   @Roles(Role.ADMIN)
   update(@Param('id') id: string, @Body() dto: UpdateUserDto) {

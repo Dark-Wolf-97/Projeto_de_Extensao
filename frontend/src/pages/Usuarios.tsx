@@ -61,9 +61,29 @@ export default function Usuarios() {
   const handleNovo = () => { setSelecionado(null); setOpen(true); };
   const handleEditar = (usuario: Usuario) => { setSelecionado(usuario); setOpen(true); };
 
-  const handleDeletar = (usuario: Usuario) => {
+  const handleDeletar = async (usuario: Usuario) => {
+    let descricao = `Deseja remover o usuário ${usuario.nome}? Esta ação não pode ser desfeita.`;
+
+    if (usuario.role === "MEDICO" && usuario.id) {
+      try {
+        const { total, ativas } = await UsuarioService.contarConsultasVinculadas(usuario.id);
+        if (ativas > 0) {
+          toast.error(
+            `Não é possível excluir ${usuario.nome}: há ${ativas} consulta(s) agendada(s) ou confirmada(s) vinculada(s) a ele. Cancele ou finalize essas consultas antes de excluir.`,
+          );
+          return;
+        }
+        if (total > 0) {
+          descricao = `O médico ${usuario.nome} possui ${total} consulta(s) vinculada(s) (já canceladas ou realizadas). Ao excluir este médico, essas consultas perdem a vinculação com um médico, mas continuam existindo no sistema (junto com seus prontuários). Deseja continuar?`;
+        }
+      } catch (err) {
+        toast.error(err);
+        return;
+      }
+    }
+
     setConfirmar({
-      descricao: `Deseja remover o usuário ${usuario.nome}? Esta ação não pode ser desfeita.`,
+      descricao,
       acao: async () => {
         try {
           await UsuarioService.deletar(usuario.id!);

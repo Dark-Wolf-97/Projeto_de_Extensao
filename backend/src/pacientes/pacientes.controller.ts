@@ -42,6 +42,12 @@ export class PacientesController {
     return this.pacientesService.findPerfil(Number(id));
   }
 
+  @Get(':id/consultas-vinculadas')
+  @Roles(Role.ADMIN, Role.SECRETARIA)
+  contarConsultasVinculadas(@Param('id') id: string) {
+    return this.pacientesService.contarConsultasVinculadas(Number(id));
+  }
+
   @Post()
   @Roles(Role.ADMIN, Role.SECRETARIA)
   criar(@Body() dto: CreatePacienteDto) {

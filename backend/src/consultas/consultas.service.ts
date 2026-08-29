@@ -72,7 +72,7 @@ export class ConsultasService {
 
   private async checkConflicts(
     pacienteId: number,
-    medicoId: number,
+    medicoId: number | null,
     data: string,
     hora: string,
     excludeId?: number,
@@ -86,9 +86,11 @@ export class ConsultasService {
       this.prisma.consulta.findFirst({
         where: { pacienteId, ...whereBase, ...notSelf },
       }),
-      this.prisma.consulta.findFirst({
-        where: { medicoId, ...whereBase, ...notSelf },
-      }),
+      medicoId
+        ? this.prisma.consulta.findFirst({
+            where: { medicoId, ...whereBase, ...notSelf },
+          })
+        : null,
     ]);
 
     if (conflitoPaciente) {

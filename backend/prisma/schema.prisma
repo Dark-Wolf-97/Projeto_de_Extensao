@@ -72,9 +72,9 @@ model Paciente {
 model Consulta {
   id                      Int            @id @default(autoincrement())
   pacienteId              Int
-  paciente                Paciente       @relation(fields: [pacienteId], references: [id])
-  medicoId                Int
-  medico                  User           @relation(fields: [medicoId], references: [id])
+  paciente                Paciente       @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  medicoId                Int?
+  medico                  User?          @relation(fields: [medicoId], references: [id], onDelete: SetNull)
   data                    DateTime
   hora                    String         @db.VarChar(5)
   status                  StatusConsulta @default(AGENDADA)
@@ -95,11 +95,10 @@ model Consulta {
 model Prontuario {
   id          Int      @id @default(autoincrement())
   consultaId  Int      @unique
-  consulta    Consulta @relation(fields: [consultaId], references: [id])
+  consulta    Consulta @relation(fields: [consultaId], references: [id], onDelete: Cascade)
   anamnese    String?  @db.Text
   diagnostico String?  @db.Text
-  prescricao  String?  @db.Text
-  observacoes String?  @db.Text
+  evolucao    String?  @db.Text
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -111,9 +110,9 @@ model Mensagem {
   tipo              TipoMensagem
   status            StatusMensagem  @default(PENDENTE)
   pacienteId        Int
-  paciente          Paciente        @relation(fields: [pacienteId], references: [id])
+  paciente          Paciente        @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
   consultaId        Int?
-  consulta          Consulta?       @relation(fields: [consultaId], references: [id])
+  consulta          Consulta?       @relation(fields: [consultaId], references: [id], onDelete: SetNull)
   telefone          String          @db.VarChar(20)
   conteudo          String          @db.Text
   agendadoPara      DateTime

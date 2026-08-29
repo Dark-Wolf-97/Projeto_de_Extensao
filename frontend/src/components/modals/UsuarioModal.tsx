@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { UsuarioService, Usuario, Role } from "@/services/UsuarioService";
 import { httpErrorMessage } from "@/services/http";
 import { toast } from "@/components/ui/sonner";
-import { Check, X } from "lucide-react";
+import { Check, Eye, EyeOff, X } from "lucide-react";
 
 interface SenhaRequisito {
   label: string;
@@ -63,9 +63,12 @@ const FORM_INICIAL: Omit<Usuario, "id" | "createdAt" | "updatedAt"> = {
 export function UsuarioModal({ open, onOpenChange, onSaved, usuario }: Props) {
   const [form, setForm] = useState(FORM_INICIAL);
   const [saving, setSaving] = useState(false);
+  const [mostrarSenha, setMostrarSenha] = useState(false);
 
   useEffect(() => {
     if (!open) return;
+
+    setMostrarSenha(false);
 
     if (usuario) {
       setForm({
@@ -196,13 +199,25 @@ export function UsuarioModal({ open, onOpenChange, onSaved, usuario }: Props) {
             <Label htmlFor="senha" className={usuario ? undefined : "after:ml-1 after:text-destructive after:content-['*']"}>
               {usuario ? "Nova senha (deixe vazio para manter)" : "Senha"}
             </Label>
-            <Input
-              id="senha"
-              type="password"
-              value={form.senha ?? ""}
-              onChange={(e) => set("senha", e.target.value)}
-              placeholder={usuario ? "••••••••" : "Mínimo 6 caracteres"}
-            />
+            <div className="relative">
+              <Input
+                id="senha"
+                type={mostrarSenha ? "text" : "password"}
+                value={form.senha ?? ""}
+                onChange={(e) => set("senha", e.target.value)}
+                placeholder={usuario ? "••••••••" : "Mínimo 6 caracteres"}
+                className="pr-10"
+              />
+              <button
+                type="button"
+                onClick={() => setMostrarSenha((v) => !v)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                tabIndex={-1}
+                aria-label={mostrarSenha ? "Ocultar senha" : "Mostrar senha"}
+              >
+                {mostrarSenha ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
             {form.senha && (
               <ul className="grid grid-cols-2 gap-1 mt-1">
                 {SENHA_REQUISITOS.map((r) => {

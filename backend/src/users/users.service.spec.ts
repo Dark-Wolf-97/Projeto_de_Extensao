@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConflictException, NotFoundException } from '@nestjs/common';
-import { Role } from '@prisma/client';
+import { Role, StatusConsulta } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { UsersService } from './users.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -221,9 +221,25 @@ describe('UsersService', () => {
       expect(mockPrisma.user.delete).toHaveBeenCalledWith({ where: { id: 1 } });
     });
 
-    it('deve lançar ConflictException quando médico possui consultas', async () => {
+    it('deve remover o médico com consultas vinculadas, desde que canceladas/realizadas (elas só perdem a vinculação)', async () => {
       mockPrisma.user.findUnique.mockResolvedValue(mockMedico);
-      mockPrisma.consulta.count.mockResolvedValue(2);
+      mockPrisma.consulta.count.mockResolvedValue(0);
+      mockPrisma.user.delete.mockResolvedValue(mockMedico);
+
+      await service.remove(2);
+
+      expect(mockPrisma.consulta.count).toHaveBeenCalledWith({
+        where: {
+          medicoId: 2,
+          status: { in: [StatusConsulta.AGENDADA, StatusConsulta.CONFIRMADA] },
+        },
+      });
+      expect(mockPrisma.user.delete).toHaveBeenCalledWith({ where: { id: 2 } });
+    });
+
+    it('deve lançar ConflictException quando o médico tem consulta agendada ou confirmada', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue(mockMedico);
+      mockPrisma.consulta.count.mockResolvedValue(1);
 
       await expect(service.remove(2)).rejects.toThrow(ConflictException);
       expect(mockPrisma.user.delete).not.toHaveBeenCalled();
@@ -234,6 +250,36 @@ describe('UsersService', () => {
 
       await expect(service.remove(999)).rejects.toThrow(NotFoundException);
       expect(mockPrisma.user.delete).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('contarConsultasVinculadas()', () => {
+    it('deve retornar o total e as ativas separadamente', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue(mockMedico);
+      mockPrisma.consulta.count
+        .mockResolvedValueOnce(5) // total
+        .mockResolvedValueOnce(2); // ativas (agendada/confirmada)
+
+      const result = await service.contarConsultasVinculadas(2);
+
+      expect(mockPrisma.consulta.count).toHaveBeenCalledWith({
+        where: { medicoId: 2 },
+      });
+      expect(mockPrisma.consulta.count).toHaveBeenCalledWith({
+        where: {
+          medicoId: 2,
+          status: { in: [StatusConsulta.AGENDADA, StatusConsulta.CONFIRMADA] },
+        },
+      });
+      expect(result).toEqual({ total: 5, ativas: 2 });
+    });
+
+    it('deve lançar NotFoundException quando usuário não existe', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue(null);
+
+      await expect(service.contarConsultasVinculadas(999)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 

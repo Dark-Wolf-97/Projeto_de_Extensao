@@ -19,10 +19,5 @@ export class CreateProntuarioDto {
   @IsOptional()
   @IsString()
   @MaxLength(5000)
-  prescricao?: string;
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(5000)
-  observacoes?: string;
+  evolucao?: string;
 }

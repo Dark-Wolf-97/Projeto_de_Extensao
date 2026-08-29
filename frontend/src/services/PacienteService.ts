@@ -17,12 +17,17 @@ export interface ConsultaDoPaciente {
   hora: string;
   status: string;
   observacoes?: string;
-  medico: { id: number; nome: string; especialidade?: string };
+  medico: { id: number; nome: string; especialidade?: string } | null;
   prontuario: { id: number } | null;
 }
 
 export interface PacientePerfil extends Paciente {
   consultas: ConsultaDoPaciente[];
+}
+
+export interface ConsultasVinculadas {
+  total: number;
+  ativas: number;
 }
 
 export const PacienteService = {
@@ -42,4 +47,7 @@ export const PacienteService = {
 
   deletar: (id: number): Promise<void> =>
     http<void>(`/pacientes/${id}`, { method: "DELETE" }),
+
+  contarConsultasVinculadas: (id: number): Promise<ConsultasVinculadas> =>
+    http<ConsultasVinculadas>(`/pacientes/${id}/consultas-vinculadas`),
 };

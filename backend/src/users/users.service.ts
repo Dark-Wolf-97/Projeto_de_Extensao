@@ -3,7 +3,7 @@ import {
   ConflictException,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Prisma, StatusConsulta } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -130,18 +130,40 @@ export class UsersService {
     return this.update(userId, safeDto);
   }
 
+  async contarConsultasVinculadas(
+    id: number,
+  ): Promise<{ total: number; ativas: number }> {
+    await this.findOne(id);
+    const [total, ativas] = await Promise.all([
+      this.prisma.consulta.count({ where: { medicoId: id } }),
+      this.prisma.consulta.count({
+        where: {
+          medicoId: id,
+          status: { in: [StatusConsulta.AGENDADA, StatusConsulta.CONFIRMADA] },
+        },
+      }),
+    ]);
+    return { total, ativas };
+  }
+
   async remove(id: number) {
     await this.findOne(id);
 
-    const consultasVinculadas = await this.prisma.consulta.count({
-      where: { medicoId: id },
+    const consultasAtivas = await this.prisma.consulta.count({
+      where: {
+        medicoId: id,
+        status: { in: [StatusConsulta.AGENDADA, StatusConsulta.CONFIRMADA] },
+      },
     });
-    if (consultasVinculadas > 0) {
+    if (consultasAtivas > 0) {
       throw new ConflictException(
-        'Não é possível excluir o médico porque existem consultas vinculadas. Mantenha o usuário para preservar o histórico clínico; consultas futuras podem ser canceladas.',
+        'Não é possível excluir o médico porque existem consultas agendadas ou confirmadas vinculadas a ele. Cancele ou finalize essas consultas antes de excluir.',
       );
     }
 
+    // Excluir o médico apenas desvincula consultas já canceladas/realizadas
+    // (medicoId vira null via ON DELETE SET NULL); elas e seus prontuários
+    // continuam existindo normalmente.
     return this.prisma.user.delete({ where: { id } });
   }
 

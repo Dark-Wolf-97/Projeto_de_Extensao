@@ -2,11 +2,20 @@ import { render, screen, fireEvent, waitFor, within } from '@testing-library/rea
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import Usuarios from './Usuarios';
 import { UsuarioService } from '@/services/UsuarioService';
+import { toast } from '@/components/ui/sonner';
 
 vi.mock('@/services/UsuarioService', () => ({
   UsuarioService: {
     listar: vi.fn(),
     deletar: vi.fn(),
+    contarConsultasVinculadas: vi.fn(),
+  },
+}));
+
+vi.mock('@/components/ui/sonner', () => ({
+  toast: {
+    success: vi.fn(),
+    error: vi.fn(),
   },
 }));
 
@@ -30,6 +39,8 @@ vi.mock('@/components/layout/PageShell', () => ({
 
 const mockListar = UsuarioService.listar as ReturnType<typeof vi.fn>;
 const mockDeletar = UsuarioService.deletar as ReturnType<typeof vi.fn>;
+const mockContarConsultasVinculadas =
+  UsuarioService.contarConsultasVinculadas as ReturnType<typeof vi.fn>;
 
 const usuariosMock = [
   {
@@ -51,6 +62,7 @@ const usuariosMock = [
 beforeEach(() => {
   mockListar.mockResolvedValue(usuariosMock);
   mockDeletar.mockResolvedValue(undefined);
+  mockContarConsultasVinculadas.mockResolvedValue({ total: 0, ativas: 0 });
 });
 
 afterEach(() => {
@@ -143,6 +155,61 @@ describe('Usuarios', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Excluir usuário Ana Santos' }));
     fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
 
+    expect(mockDeletar).not.toHaveBeenCalled();
+  });
+
+  it('deve exibir aviso especial ao excluir médico com consultas já canceladas/realizadas', async () => {
+    mockContarConsultasVinculadas.mockResolvedValue({ total: 3, ativas: 0 });
+    render(<Usuarios />);
+
+    await waitFor(() => screen.getByText('medico@clinica.com'));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Excluir usuário Dr. Carlos' }));
+
+    await waitFor(() => {
+      expect(mockContarConsultasVinculadas).toHaveBeenCalledWith(2);
+      expect(
+        screen.getByText(/perdem a vinculação com um médico, mas continuam existindo/i),
+      ).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Remover' }));
+
+    await waitFor(() => {
+      expect(mockDeletar).toHaveBeenCalledWith(2);
+    });
+  });
+
+  it('não deve exibir aviso especial ao excluir médico sem consultas vinculadas', async () => {
+    mockContarConsultasVinculadas.mockResolvedValue({ total: 0, ativas: 0 });
+    render(<Usuarios />);
+
+    await waitFor(() => screen.getByText('medico@clinica.com'));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Excluir usuário Dr. Carlos' }));
+
+    await waitFor(() => {
+      expect(
+        screen.getByText('Deseja remover o usuário Dr. Carlos? Esta ação não pode ser desfeita.'),
+      ).toBeInTheDocument();
+    });
+  });
+
+  it('deve bloquear a exclusão e não abrir modal quando o médico tem consulta agendada ou confirmada', async () => {
+    mockContarConsultasVinculadas.mockResolvedValue({ total: 2, ativas: 2 });
+    render(<Usuarios />);
+
+    await waitFor(() => screen.getByText('medico@clinica.com'));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Excluir usuário Dr. Carlos' }));
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith(
+        expect.stringContaining('há 2 consulta(s) agendada(s) ou confirmada(s)'),
+      );
+    });
+
+    expect(screen.queryByRole('button', { name: 'Remover' })).not.toBeInTheDocument();
     expect(mockDeletar).not.toHaveBeenCalled();
   });
 });

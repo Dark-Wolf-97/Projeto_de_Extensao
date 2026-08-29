@@ -5,8 +5,7 @@ export interface Prontuario {
   consultaId: number;
   anamnese?: string;
   diagnostico?: string;
-  prescricao?: string;
-  observacoes?: string;
+  evolucao?: string;
   createdAt?: string;
   updatedAt?: string;
   consulta?: {
@@ -23,8 +22,7 @@ export type CreateProntuarioPayload = {
   consultaId: number;
   anamnese?: string;
   diagnostico?: string;
-  prescricao?: string;
-  observacoes?: string;
+  evolucao?: string;
 };
 
 export const ProntuarioService = {

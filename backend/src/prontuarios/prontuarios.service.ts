@@ -23,7 +23,7 @@ const INCLUDE = {
 export class ProntuariosService {
   constructor(private readonly prisma: PrismaService) {}
 
-  private assertAccess(user: AuthenticatedUser, medicoId: number) {
+  private assertAccess(user: AuthenticatedUser, medicoId: number | null) {
     const permitted =
       user.role === Role.ADMIN ||
       (user.role === Role.MEDICO && user.id === medicoId);
@@ -55,8 +55,7 @@ export class ProntuariosService {
         consultaId: dto.consultaId,
         anamnese: dto.anamnese,
         diagnostico: dto.diagnostico,
-        prescricao: dto.prescricao,
-        observacoes: dto.observacoes,
+        evolucao: dto.evolucao,
       },
       include: INCLUDE,
     });
@@ -82,7 +81,7 @@ export class ProntuariosService {
       include: INCLUDE,
     });
     if (!prontuario) throw new NotFoundException('Prontuário não encontrado');
-    this.assertAccess(user, prontuario.consulta.medico.id);
+    this.assertAccess(user, prontuario.consulta.medicoId);
     return prontuario;
   }
 
@@ -92,7 +91,7 @@ export class ProntuariosService {
       include: INCLUDE,
     });
     if (!prontuario) throw new NotFoundException('Prontuário não encontrado');
-    this.assertAccess(user, prontuario.consulta.medico.id);
+    this.assertAccess(user, prontuario.consulta.medicoId);
     return prontuario;
   }
 

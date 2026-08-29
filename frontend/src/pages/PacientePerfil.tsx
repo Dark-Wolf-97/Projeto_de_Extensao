@@ -141,9 +141,9 @@ export default function PacientePerfil() {
                     <TableRow key={c.id}>
                       <TableCell>{formatData(c.data)}</TableCell>
                       <TableCell>{c.hora}</TableCell>
-                      <TableCell className="font-medium">{c.medico.nome}</TableCell>
+                      <TableCell className="font-medium">{c.medico?.nome ?? "—"}</TableCell>
                       <TableCell className="text-muted-foreground">
-                        {c.medico.especialidade ?? "—"}
+                        {c.medico?.especialidade ?? "—"}
                       </TableCell>
                       <TableCell>
                         <Badge

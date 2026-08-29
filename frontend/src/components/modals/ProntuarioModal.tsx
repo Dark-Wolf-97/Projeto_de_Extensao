@@ -47,15 +47,13 @@ interface Props {
 interface FormState {
   anamnese: string;
   diagnostico: string;
-  prescricao: string;
-  observacoes: string;
+  evolucao: string;
 }
 
 const FORM_VAZIO: FormState = {
   anamnese: "",
   diagnostico: "",
-  prescricao: "",
-  observacoes: "",
+  evolucao: "",
 };
 
 export function ProntuarioModal({ open, onOpenChange, consulta, onSaved }: Props) {
@@ -87,8 +85,7 @@ export function ProntuarioModal({ open, onOpenChange, consulta, onSaved }: Props
             ? {
                 anamnese: p.anamnese ?? "",
                 diagnostico: p.diagnostico ?? "",
-                prescricao: p.prescricao ?? "",
-                observacoes: p.observacoes ?? "",
+                evolucao: p.evolucao ?? "",
               }
             : FORM_VAZIO,
         );
@@ -125,8 +122,7 @@ export function ProntuarioModal({ open, onOpenChange, consulta, onSaved }: Props
       const payload = {
         anamnese: form.anamnese || undefined,
         diagnostico: form.diagnostico || undefined,
-        prescricao: form.prescricao || undefined,
-        observacoes: form.observacoes || undefined,
+        evolucao: form.evolucao || undefined,
       };
 
       if (prontuario?.id) {
@@ -218,26 +214,13 @@ export function ProntuarioModal({ open, onOpenChange, consulta, onSaved }: Props
               />
             </div>
 
-            <div className="grid gap-2">
-              <Label htmlFor="prescricao">Prescrição</Label>
+            <div className="grid gap-2 sm:col-span-2">
+              <Label htmlFor="evolucao">Evolução</Label>
               <Textarea
-                id="prescricao"
-                placeholder={canEdit ? "Medicamentos e orientações..." : "—"}
-                value={form.prescricao}
-                onChange={(e) => set("prescricao", e.target.value)}
-                readOnly={!canEdit}
-                maxLength={5000}
-                rows={5}
-              />
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="obs">Observações</Label>
-              <Textarea
-                id="obs"
-                placeholder={canEdit ? "Observações adicionais..." : "—"}
-                value={form.observacoes}
-                onChange={(e) => set("observacoes", e.target.value)}
+                id="evolucao"
+                placeholder={canEdit ? "Evolução do quadro clínico..." : "—"}
+                value={form.evolucao}
+                onChange={(e) => set("evolucao", e.target.value)}
                 readOnly={!canEdit}
                 maxLength={5000}
                 rows={5}

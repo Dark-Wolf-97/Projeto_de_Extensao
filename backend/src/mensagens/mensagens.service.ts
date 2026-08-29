@@ -32,7 +32,7 @@ type ConsultaComRelacoes = {
   hora: string;
   pacienteId: number;
   paciente: { nome: string; telefone: string };
-  medico: { nome: string };
+  medico: { nome: string } | null;
 };
 
 @Injectable()
@@ -330,11 +330,13 @@ export class MensagensService implements OnModuleInit {
   }
 
   private montarConteudoConfirmacao(consulta: ConsultaComRelacoes): string {
-    return `Olá, ${consulta.paciente.nome}! Sua consulta com ${consulta.medico.nome} está agendada para ${this.formatarData(consulta.data)} às ${consulta.hora}. Responda SIM para confirmar sua presença.`;
+    const comMedico = consulta.medico ? ` com ${consulta.medico.nome}` : '';
+    return `Olá, ${consulta.paciente.nome}! Sua consulta${comMedico} está agendada para ${this.formatarData(consulta.data)} às ${consulta.hora}. Responda SIM para confirmar sua presença.`;
   }
 
   private montarConteudoLembrete(consulta: ConsultaComRelacoes): string {
-    return `Olá, ${consulta.paciente.nome}! Lembrete: sua consulta com ${consulta.medico.nome} é amanhã, ${this.formatarData(consulta.data)} às ${consulta.hora}. Responda SIM para confirmar sua presença.`;
+    const comMedico = consulta.medico ? ` com ${consulta.medico.nome}` : '';
+    return `Olá, ${consulta.paciente.nome}! Lembrete: sua consulta${comMedico} é amanhã, ${this.formatarData(consulta.data)} às ${consulta.hora}. Responda SIM para confirmar sua presença.`;
   }
 
   private montarConteudoAniversario(nome: string): string {
