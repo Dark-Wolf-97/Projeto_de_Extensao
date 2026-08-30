@@ -1,79 +1,250 @@
 # Portal ISG
 
-Sistema de gestão clínica com frontend React, API NestJS, banco MySQL e worker
-isolado para `whatsapp-web.js`. A execução integrada usa Docker Compose e
-publica somente o Nginx nas portas 80/443; API, worker e banco não expõem portas
-no host.
+Sistema web de gestão clínica desenvolvido para a Clínica ISG - Instituto de
+Saúde de Guarapuava. O portal centraliza pacientes, usuários, consultas e
+prontuários, integra agendamentos ao Google Agenda e oferece rotinas de
+mensageria pelo WhatsApp.
 
-## Execução local com Docker
+> Prontuários e dados clínicos são dados sensíveis. Use credenciais individuais,
+> mantenha os segredos fora do Git e restrinja o acesso ao ambiente implantado.
 
-1. Copie `.env.docker.example` para `.env`.
-2. Preencha `DB_PASSWORD`, `JWT_SECRET` e as demais configurações sem versionar o
-   arquivo `.env`.
-3. Execute:
+## Funcionalidades principais
+
+- autenticação e controle de acesso para `ADMIN`, `SECRETARIA` e `MEDICO`;
+- cadastro, busca e manutenção de pacientes;
+- agendamento, reagendamento e acompanhamento de consultas;
+- prontuário eletrônico com regras de acesso aplicadas no backend;
+- dashboard com indicadores da clínica;
+- sincronização opcional de consultas com o Google Calendar;
+- fila de confirmações, lembretes e mensagens de aniversário pelo WhatsApp;
+- execução integrada com HTTPS, proxy reverso, healthchecks e volumes
+  persistentes por meio do Docker Compose.
+
+## Tecnologias e arquitetura
+
+| Camada | Tecnologias |
+| --- | --- |
+| Frontend | React 18, Vite, TypeScript, Tailwind CSS e Vitest |
+| Backend | NestJS, TypeScript, Prisma 7 e Jest |
+| Banco de dados | MySQL 8.0 (compatível com MariaDB no desenvolvimento) |
+| Integrações | Google Calendar API e `whatsapp-web.js` |
+| Infraestrutura | Docker Compose, Nginx e TLS local |
+
+Na implantação completa, quatro containers trabalham em conjunto:
+
+- `frontend`: serve a aplicação React, encerra o TLS e encaminha `/api`;
+- `api`: executa a API NestJS e aplica as migrações do Prisma;
+- `whatsapp-worker`: mantém a sessão do WhatsApp e executa as rotinas agendadas;
+- `mysql`: armazena os dados da aplicação.
+
+Somente o Nginx publica as portas `80` e `443`. A API, o worker e o banco ficam
+nas redes internas do Docker.
+
+## Estrutura do repositório
+
+```text
+Projeto_de_Extensao/
+|-- backend/                 # API, worker, Prisma e testes Jest
+|   |-- prisma/              # schema e migrações do banco
+|   `-- src/                 # módulos NestJS
+|-- frontend/                # SPA React e testes Vitest
+|-- deploy/                  # scripts operacionais e de backup
+|-- documentos/              # requisitos, arquitetura, manuais e decisões
+|-- docker-compose.yml       # pilha integrada
+|-- DEPLOY_WINDOWS.md        # guia detalhado de implantação
+`-- README.md
+```
+
+## Pré-requisitos
+
+### Desenvolvimento sem Docker
+
+- Git;
+- Node.js 22 LTS e npm;
+- MySQL 8.0 ou MariaDB compatível;
+- duas janelas de terminal, uma para o backend e outra para o frontend.
+
+### Execução integrada com Docker
+
+- Docker Engine com Docker Compose, ou Docker Desktop com WSL2 no Windows;
+- pelo menos 8 GB de memória e 20 GB de espaço livre para a pilha completa;
+- portas `80` e `443` livres.
+
+## Configuração do ambiente de desenvolvimento
+
+### 1. Obtenha o código
 
 ```bash
-docker compose up --build -d
+git clone https://github.com/Dark-Wolf-97/Projeto_de_Extensao.git
+cd Projeto_de_Extensao
 ```
 
-Na máquina que hospeda o sistema, acesse `https://localhost`. Em outra máquina
-da mesma rede, use o hostname/IP configurado no `.env`. O frontend usa `/api`,
-portanto não depende de `localhost` no JavaScript entregue ao navegador. O guia
-completo de servidor Windows, certificado local, firewall e backup está em
-[`DEPLOY_WINDOWS.md`](DEPLOY_WINDOWS.md).
+### 2. Prepare o banco de dados
 
-`CORS_ORIGIN` só é necessário se a API for publicada e acessada diretamente por
-outra origem. Quando configurado, aceita uma lista de origens separadas por vírgula.
+Crie um banco MySQL local vazio. O nome usado nos exemplos é `clinica_db`:
 
-## Seed dos usuários iniciais (ADMIN, SECRETARIA, MEDICO)
+```sql
+CREATE DATABASE clinica_db
+  CHARACTER SET utf8mb4
+  COLLATE utf8mb4_unicode_ci;
+```
 
-O seed não possui senha padrão, usa bcrypt e não altera a senha de um usuário já
-existente. Cada perfil (`ADMIN_*`, `SECRETARIA_*`, `MEDICO_*`) é opcional e
-independente: se as variáveis de um perfil ficarem todas em branco, aquele
-usuário simplesmente não é criado; se ficarem parcialmente preenchidas, o
-comando falha avisando qual variável está faltando. A senha de cada perfil
-exige de 12 a 72 bytes. O perfil `MEDICO` também exige `MEDICO_CRM` e
-`MEDICO_ESPECIALIDADE`.
+Crie `backend/.env` a partir do modelo correspondente:
 
-Para desenvolvimento, crie um arquivo `backend/.env` não versionado com:
+```powershell
+Copy-Item backend/.env.example backend/.env
+```
+
+Em Linux ou macOS, o comando equivalente é:
+
+```bash
+cp backend/.env.example backend/.env
+```
+
+Preencha pelo menos estas variáveis no arquivo, usando valores locais seguros:
 
 ```dotenv
-DATABASE_URL=mysql://usuario:senha@localhost:3306/clinica_db
-ADMIN_NOME=Nome do Administrador
-ADMIN_EMAIL=administrador@exemplo.com
-ADMIN_PASSWORD=
-
-SECRETARIA_NOME=Nome da Secretaria
-SECRETARIA_EMAIL=secretaria@exemplo.com
-SECRETARIA_PASSWORD=
-
-MEDICO_NOME=Nome do Medico
-MEDICO_EMAIL=medico@exemplo.com
-MEDICO_PASSWORD=
-MEDICO_CRM=12345-SP
-MEDICO_ESPECIALIDADE=Clinico Geral
+DATABASE_URL="mysql://usuario:senha@localhost:3306/clinica_db"
+PORT=3000
+JWT_SECRET="gere-uma-chave-aleatoria-com-pelo-menos-32-bytes"
+JWT_EXPIRES_IN="1d"
+COOKIE_SECURE=false
+PROCESS_ROLE=api
+WHATSAPP_ENABLED=false
+WHATSAPP_SESSION_PATH=./whatsapp-session
 ```
 
-Depois execute:
+`COOKIE_SECURE=false` é indicado somente para desenvolvimento via HTTP. Em uma
+implantação HTTPS, mantenha-o habilitado. `WHATSAPP_ENABLED=false` impede apenas
+a conexão automática no início; o botão administrativo **Conectar** continua
+disponível por decisão do projeto.
+
+### 3. Instale as dependências e prepare o Prisma
 
 ```bash
 cd backend
 npm ci
+npx prisma generate
+npx prisma migrate deploy
+cd ../frontend
+npm ci
+cd ..
+```
+
+Nunca altere ou apague migrações históricas. Mudanças de modelo devem gerar uma
+nova migração com `npx prisma migrate dev --name descricao_da_mudanca` dentro de
+`backend/`.
+
+### 4. Configure as integrações opcionais
+
+O sistema funciona sem Google Calendar. Para habilitá-lo, configure no
+`backend/.env`:
+
+```dotenv
+GOOGLE_CALENDAR_ENABLED=true
+GOOGLE_CALENDAR_ID=identificador_da_agenda
+GOOGLE_SERVICE_ACCOUNT_EMAIL=conta@projeto.iam.gserviceaccount.com
+GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+GOOGLE_CALENDAR_TIMEZONE=America/Sao_Paulo
+GOOGLE_CALENDAR_DEFAULT_DURATION_MINUTES=30
+```
+
+Ative a Google Calendar API, crie uma conta de serviço e compartilhe a agenda
+com essa conta usando a permissão **Fazer alterações nos eventos**. O guia
+detalhado está em
+[`documentos/guias/integracao_calendar.md`](documentos/guias/integracao_calendar.md).
+Nunca versione o JSON da conta de serviço.
+
+## Como rodar localmente
+
+### Desenvolvimento sem Docker
+
+No primeiro terminal, inicie o backend:
+
+```bash
+cd backend
+npm run start:dev
+```
+
+No segundo terminal, inicie o frontend:
+
+```bash
+cd frontend
+npm run dev
+```
+
+Acesse [http://localhost:8080](http://localhost:8080). O Vite encaminha as
+requisições feitas a `/api` para o backend em `http://localhost:3000`.
+
+### Pilha completa com Docker Compose
+
+Copie o modelo de ambiente da raiz:
+
+```powershell
+Copy-Item .env.docker.example .env
+```
+
+Em Linux ou macOS:
+
+```bash
+cp .env.docker.example .env
+```
+
+Preencha no mínimo `DB_ROOT_PASSWORD`, `DB_USER`, `DB_PASSWORD`, `JWT_SECRET`,
+`TLS_HOSTNAME` e `TLS_IP_ADDRESS`. Use senhas longas e diferentes; não versione
+nem compartilhe o arquivo `.env`.
+
+Valide e inicie os serviços:
+
+```bash
+docker compose config
+docker compose up --build -d
+docker compose ps
+```
+
+Na máquina que hospeda a pilha, acesse `https://localhost`. Em outra máquina da
+rede, use o hostname ou IP configurado. O certificado local precisa ser
+instalado como confiável nas estações; consulte o guia de deploy para o passo a
+passo.
+
+Para encerrar os containers preservando os dados:
+
+```bash
+docker compose down
+```
+
+Não use `docker compose down -v` em um ambiente com dados importantes: essa
+opção remove o banco, a sessão do WhatsApp e os certificados persistidos.
+
+## Usuários iniciais
+
+O seed permite criar, de forma independente, usuários `ADMIN`, `SECRETARIA` e
+`MEDICO`. Preencha temporariamente no arquivo de ambiente as variáveis do perfil
+desejado. As senhas precisam ter de 12 a 72 bytes; médico também exige CRM e
+especialidade.
+
+Em desenvolvimento sem Docker:
+
+```bash
+cd backend
 npm run seed
 ```
 
-Com os containers em execução, preencha temporariamente as variáveis dos
-perfis desejados no `.env` da raiz e execute:
+Com a pilha em execução:
 
 ```bash
 docker compose exec api node dist/src/seed.js
 ```
 
-Após o cadastro, remova as variáveis preenchidas do `.env` e recrie o container
-do backend para que as senhas deixem de existir no ambiente do processo.
-Executar o comando novamente não duplica os usuários nem redefine senhas.
+O seed não duplica usuários nem redefine senhas existentes. Depois da execução,
+remova as senhas do arquivo de ambiente. Em Docker, recrie a API para retirar
+esses valores do ambiente do processo:
 
-## Validação
+```bash
+docker compose up -d --force-recreate api
+```
+
+## Validação e testes
 
 Frontend:
 
@@ -86,7 +257,7 @@ npm run test:run
 npm run build
 ```
 
-Backend:
+Backend em Bash:
 
 ```bash
 cd backend
@@ -96,34 +267,81 @@ npm run build
 npm test -- --runInBand
 ```
 
-## Mensageria
+No PowerShell, defina a variável apenas para o comando do Prisma desta forma:
 
-A mensageria usa `whatsapp-web.js` em um processo separado, com sessão
-persistente via `LocalAuth` no volume `whatsapp_session`. O QR Code fica na tela
-administrativa de Configurações. Z-API não faz parte da solução; consulte as
-limitações operacionais no guia de implantação.
-
-## Google Agenda (Bloco 1.5)
-
-A integração usa a API do Google Calendar exclusivamente no backend. Para ativá-la:
-
-1. Ative a Google Calendar API no projeto Google Cloud da clínica e crie uma
-   service account.
-2. Compartilhe a agenda usada pela clínica com o e-mail da service account,
-   permitindo alterações nos eventos.
-3. Configure as variáveis abaixo no `.env` não versionado da implantação:
-
-```dotenv
-GOOGLE_CALENDAR_ENABLED=true
-GOOGLE_CALENDAR_ID=identificador_da_agenda
-GOOGLE_SERVICE_ACCOUNT_EMAIL=service-account@projeto.iam.gserviceaccount.com
-GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
-GOOGLE_CALENDAR_TIMEZONE=America/Sao_Paulo
-GOOGLE_CALENDAR_DEFAULT_DURATION_MINUTES=30
+```powershell
+cd backend
+npm ci
+$env:DATABASE_URL='mysql://root:root@localhost:3306/clinica_db'
+npx prisma generate
+Remove-Item Env:DATABASE_URL
+npm run build
+npm test -- --runInBand
 ```
 
-Não salve o arquivo JSON da service account no repositório. A agenda pode conter
-consultas simultâneas; o Portal não usa os eventos do Google para bloquear
-horários. Se a integração estiver desabilitada ou temporariamente indisponível,
-o CRUD de consultas continua funcionando e ADMIN/SECRETARIA podem tentar o
-recadastro posteriormente pela listagem.
+Para validar a infraestrutura:
+
+```bash
+docker compose config
+docker compose build
+```
+
+## Deploy básico
+
+A implantação de referência é feita em um servidor Windows da rede local com
+Docker Desktop e WSL2. O fluxo resumido é:
+
+1. reservar um IP para o servidor e configurar um hostname interno;
+2. copiar `.env.docker.example` para `.env` e preencher os segredos;
+3. executar `docker compose up --build -d`;
+4. exportar a autoridade certificadora pública criada pelo container e
+   instalá-la nas estações clientes;
+5. liberar somente as portas `80` e `443` no perfil privado do firewall;
+6. criar os usuários iniciais e remover suas senhas do ambiente;
+7. configurar e testar backups diários em outro disco ou armazenamento
+   protegido;
+8. validar login, pacientes, consultas, prontuários, Google Agenda e WhatsApp.
+
+As instruções completas de certificado, firewall, backup, restauração,
+atualização e diagnóstico estão em [`DEPLOY_WINDOWS.md`](DEPLOY_WINDOWS.md).
+
+Antes de atualizar uma instalação, gere e confira um backup. Não publique o
+Portal diretamente na internet sem uma revisão adicional de segurança, VPN e
+política de acesso.
+
+## Observações sobre o WhatsApp
+
+A integração usa `whatsapp-web.js`; a Z-API não faz parte da solução. Como essa
+é uma integração não oficial, mudanças do WhatsApp podem interromper o serviço e
+existe risco de bloqueio da conta.
+
+A versão atual da biblioteca ainda possui uma limitação conhecida relacionada
+ao esquema LID: o envio tem um contorno implementado, mas algumas respostas de
+pacientes podem não chegar ao evento de recebimento. Nesses casos, a confirmação
+da consulta deve ser feita manualmente no Portal. Consulte
+[`DEPLOY_WINDOWS.md`](DEPLOY_WINDOWS.md) antes de diagnosticar ou alterar essa
+integração.
+
+## Documentação adicional
+
+- [`documentos/entregaveis/01-Portal-ISG-Documento-de-Requisitos.docx`](documentos/entregaveis/01-Portal-ISG-Documento-de-Requisitos.docx)
+- [`documentos/entregaveis/02-Portal-ISG-Arquitetura-e-Design.docx`](documentos/entregaveis/02-Portal-ISG-Arquitetura-e-Design.docx)
+- [`documentos/entregaveis/03-Portal-ISG-Manual-do-Usuario.docx`](documentos/entregaveis/03-Portal-ISG-Manual-do-Usuario.docx)
+- [`documentos/entregaveis/04-Portal-ISG-Manual-Tecnico-e-Guia-de-Implantacao.docx`](documentos/entregaveis/04-Portal-ISG-Manual-Tecnico-e-Guia-de-Implantacao.docx)
+
+## Licença
+
+Este repositório não possui uma licença de código aberto. O backend está marcado
+como `UNLICENSED`; portanto, o uso, a cópia, a modificação e a distribuição
+dependem de autorização dos responsáveis pelo projeto.
+
+## Créditos
+
+Projeto desenvolvido pela equipe **ISG Online - Consultoria de Tecnologia da
+Informação e Desenvolvimento** para a **Clínica ISG - Instituto de Saúde de
+Guarapuava**.
+
+- **Caio Biegai Rodrigues Ferreira** - Product Owner e desenvolvimento;
+- **Luiz Henrique de Almeida** - Scrum Master e desenvolvimento.
+
+Repositório: [Dark-Wolf-97/Projeto_de_Extensao](https://github.com/Dark-Wolf-97/Projeto_de_Extensao)

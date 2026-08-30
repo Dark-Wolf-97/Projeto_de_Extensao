@@ -119,23 +119,47 @@ Por isso a confirmação manual continua disponível.
 ## 7. Backup diário
 
 Escolha outro disco ou um compartilhamento NAS, por exemplo
-`E:\Backups\PortalISG`, e teste uma execução manual:
+`E:\Backups\PortalISG`. Como os arquivos contêm dados clínicos, restrinja o
+acesso à conta responsável pelo backup e use armazenamento criptografado (por
+exemplo, BitLocker no disco de destino ou criptografia equivalente no NAS).
+
+Antes de agendar, teste uma execução manual:
 
 ```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\deploy\backup-database.ps1 -Destino 'E:\Backups\PortalISG'
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\deploy\backup-database.ps1 -Destino 'E:\Backups\PortalISG' -RetencaoDias 30
 ```
 
 O script executa `mysqldump` dentro do container com o usuário da aplicação,
-compacta o SQL e copia o arquivo para o destino. Ele falha se o dump ou a cópia
-falharem e não apaga backups antigos automaticamente.
+compacta e testa o arquivo antes de copiá-lo para o destino. A cópia só recebe o
+nome final depois de concluída e ganha um arquivo `.sha256` para conferência de
+integridade. Ele falha se o dump, a compactação ou a cópia falhar. Depois de um
+backup novo bem-sucedido, remove apenas os backups `portal-isg-*.sql.gz` desse
+destino com mais de 30 dias. Use `-RetencaoDias 0` para não excluir nenhum.
 
-No Agendador de Tarefas, crie uma tarefa diária (por exemplo, 23:00) usando a
-mesma conta que executa o Docker Desktop:
+Instale ou atualize a tarefa diária das 23:00 usando a mesma conta que executa o
+Docker Desktop:
 
-- Programa: `powershell.exe`
-- Argumentos: `-NoProfile -ExecutionPolicy Bypass -File "D:\Projeto_de_Extensao\deploy\backup-database.ps1" -Destino "E:\Backups\PortalISG"`
-- Marque **Executar somente quando o usuário estiver conectado**, pois o Docker
-  Desktop desta implantação depende da sessão desse usuário.
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\deploy\install-backup-task.ps1 -Destino 'E:\Backups\PortalISG' -Horario '23:00' -RetencaoDias 30
+```
+
+O instalador cria a tarefa `Portal ISG - Backup do banco` com **Executar somente
+quando o usuário estiver conectado**, pois o Docker Desktop desta implantação
+depende da sessão desse usuário. Se o horário for perdido, a tarefa inicia assim
+que possível; execuções simultâneas são bloqueadas.
+
+Confirme a configuração e o último resultado com:
+
+```powershell
+Get-ScheduledTask -TaskName 'Portal ISG - Backup do banco'
+Get-ScheduledTaskInfo -TaskName 'Portal ISG - Backup do banco'
+```
+
+No segundo comando, `LastTaskResult` igual a `0` indica sucesso. Confirme também
+que existem, no destino, pares `.sql.gz` e `.sql.gz.sha256` recentes e com
+tamanho maior que zero. Um backup no mesmo computador protege contra perda do
+volume Docker, mas não contra falha física, furto ou ransomware; mantenha ao
+menos uma cópia adicional, criptografada e isolada do servidor.
 
 Teste a restauração pelo menos uma vez em um banco temporário, nunca por cima da
 base de produção. Um roteiro seguro é copiar um backup para o container, criar
@@ -144,6 +168,9 @@ listar as tabelas restauradas:
 
 ```powershell
 $backup = Get-ChildItem 'E:\Backups\PortalISG\portal-isg-*.sql.gz' | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+$hashEsperado = (Get-Content "$($backup.FullName).sha256").Split(' ', [System.StringSplitOptions]::RemoveEmptyEntries)[0]
+$hashAtual = (Get-FileHash -LiteralPath $backup.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+if ($hashAtual -ne $hashEsperado) { throw 'Checksum do backup inválido.' }
 docker compose cp $backup.FullName mysql:/tmp/restore-test.sql.gz
 docker compose exec -T mysql sh -c 'mysql --user=root --password="$MYSQL_ROOT_PASSWORD" -e "CREATE DATABASE clinica_restore_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"'
 docker compose exec -T mysql sh -c 'gzip -dc /tmp/restore-test.sql.gz | mysql --user=root --password="$MYSQL_ROOT_PASSWORD" clinica_restore_test'
