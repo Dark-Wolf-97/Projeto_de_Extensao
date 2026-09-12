@@ -215,6 +215,7 @@ export class ConsultasService {
     const removida = await this.prisma.consulta.delete({ where: { id } });
     await this.googleCalendar.removerEventoSemInterromperPortal(
       consulta.googleCalendarEventId,
+      consulta.googleCalendarId,
     );
     return removida;
   }
@@ -223,7 +224,7 @@ export class ConsultasService {
     return this.googleCalendar.cadastrarOuRecadastrar(id);
   }
 
-  buscarLinkAgenda() {
-    return this.googleCalendar.buscarLinkAgenda();
+  buscarLinkAgenda(medicoId?: number) {
+    return this.googleCalendar.buscarLinkAgenda(medicoId);
   }
 }

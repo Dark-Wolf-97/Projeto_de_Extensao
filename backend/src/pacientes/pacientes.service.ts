@@ -135,11 +135,12 @@ export class PacientesService {
     // em cascata acontece direto no banco, sem passar pelo ConsultasService.
     const consultas = await this.prisma.consulta.findMany({
       where: { pacienteId: id },
-      select: { googleCalendarEventId: true },
+      select: { googleCalendarEventId: true, googleCalendarId: true },
     });
     for (const consulta of consultas) {
       await this.googleCalendar.removerEventoSemInterromperPortal(
         consulta.googleCalendarEventId,
+        consulta.googleCalendarId,
       );
     }
 

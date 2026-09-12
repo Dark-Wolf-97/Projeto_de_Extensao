@@ -33,6 +33,7 @@ const CONSULTA_INCLUDE = {
       crm: true,
       especialidade: true,
       telefone: true,
+      googleCalendarId: true,
     },
   },
   prontuario: { select: { id: true } },
@@ -40,7 +41,8 @@ const CONSULTA_INCLUDE = {
 
 interface GoogleCalendarConfig {
   enabled: boolean;
-  calendarId: string;
+  /** Agenda usada quando o médico da consulta não tem agenda própria configurada. */
+  fallbackCalendarId: string;
   serviceAccountEmail: string;
   serviceAccountPrivateKey: string;
   timezone: string;
@@ -73,6 +75,11 @@ export class GoogleCalendarService {
       throw new NotFoundException('Consulta não encontrada');
     }
 
+    const calendarIdAlvo = this.resolveCalendarId(consulta.medico, config);
+    const calendarIdAtual = consulta.googleCalendarId || config.fallbackCalendarId;
+    const mudouDeAgenda =
+      !!consulta.googleCalendarEventId && calendarIdAtual !== calendarIdAlvo;
+
     try {
       const client = this.createClient({
         serviceAccountEmail: config.serviceAccountEmail,
@@ -81,10 +88,22 @@ export class GoogleCalendarService {
       const requestBody = this.buildEvent(consulta, config);
       let event: calendar_v3.Schema$Event | undefined;
 
-      if (consulta.googleCalendarEventId) {
+      if (mudouDeAgenda) {
+        // O médico (ou a agenda dele) mudou desde a última sincronização:
+        // remove o evento da agenda antiga em vez de tentar atualizá-lo lá,
+        // e deixa o bloco abaixo recriá-lo na agenda correta.
+        try {
+          await client.events.delete({
+            calendarId: calendarIdAtual,
+            eventId: consulta.googleCalendarEventId!,
+          });
+        } catch (error) {
+          if (!this.isMissingEvent(error)) throw error;
+        }
+      } else if (consulta.googleCalendarEventId) {
         try {
           const response = await client.events.update({
-            calendarId: config.calendarId,
+            calendarId: calendarIdAlvo,
             eventId: consulta.googleCalendarEventId,
             requestBody,
           });
@@ -98,7 +117,7 @@ export class GoogleCalendarService {
 
       if (!event) {
         const response = await client.events.insert({
-          calendarId: config.calendarId,
+          calendarId: calendarIdAlvo,
           requestBody,
         });
         event = response.data;
@@ -113,6 +132,7 @@ export class GoogleCalendarService {
         data: {
           googleCalendarEventId: event.id,
           googleCalendarEventLink: event.htmlLink,
+          googleCalendarId: calendarIdAlvo,
           googleCalendarSyncedAt: new Date(),
           googleCalendarLastError: null,
         },
@@ -139,6 +159,7 @@ export class GoogleCalendarService {
 
   async removerEventoSemInterromperPortal(
     eventId: string | null,
+    calendarId?: string | null,
   ): Promise<void> {
     const config = this.getConfig();
     if (!config.enabled || !eventId) return;
@@ -150,7 +171,7 @@ export class GoogleCalendarService {
         serviceAccountPrivateKey: config.serviceAccountPrivateKey,
       });
       await client.events.delete({
-        calendarId: config.calendarId,
+        calendarId: calendarId || config.fallbackCalendarId,
         eventId,
       });
     } catch {
@@ -158,21 +179,36 @@ export class GoogleCalendarService {
     }
   }
 
-  buscarLinkAgenda(): { link: string } {
+  async buscarLinkAgenda(medicoId?: number): Promise<{ link: string }> {
     const config = this.getConfig();
     if (!config.enabled) {
       throw new ServiceUnavailableException(
         'A integração com Google Agenda está desabilitada.',
       );
     }
-    if (!config.calendarId) {
+
+    let calendarId = config.fallbackCalendarId;
+    if (medicoId) {
+      const medico = await this.prisma.user.findUnique({
+        where: { id: medicoId },
+        select: { googleCalendarId: true },
+      });
+      if (!medico?.googleCalendarId) {
+        throw new NotFoundException(
+          'Este médico ainda não tem uma agenda do Google configurada.',
+        );
+      }
+      calendarId = medico.googleCalendarId;
+    }
+
+    if (!calendarId) {
       throw new ServiceUnavailableException(
         'O Google Agenda ainda não foi configurado no servidor.',
       );
     }
 
     return {
-      link: `${GOOGLE_CALENDAR_URL}?cid=${encodeURIComponent(config.calendarId)}`,
+      link: `${GOOGLE_CALENDAR_URL}?cid=${encodeURIComponent(calendarId)}`,
     };
   }
 
@@ -185,7 +221,7 @@ export class GoogleCalendarService {
       enabled: /^(true|1)$/i.test(
         process.env.GOOGLE_CALENDAR_ENABLED?.trim() ?? '',
       ),
-      calendarId: process.env.GOOGLE_CALENDAR_ID?.trim() ?? '',
+      fallbackCalendarId: process.env.GOOGLE_CALENDAR_ID?.trim() ?? '',
       serviceAccountEmail:
         process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL?.trim() ?? '',
       serviceAccountPrivateKey: (
@@ -207,7 +243,7 @@ export class GoogleCalendarService {
       );
     }
     if (
-      !config.calendarId ||
+      !config.fallbackCalendarId ||
       !config.serviceAccountEmail ||
       !config.serviceAccountPrivateKey
     ) {
@@ -215,6 +251,17 @@ export class GoogleCalendarService {
         'O Google Agenda ainda não foi configurado no servidor.',
       );
     }
+  }
+
+  /**
+   * Cada médico pode ter a própria agenda do Google. Sem uma configurada,
+   * a consulta cai na agenda geral da clínica como reserva.
+   */
+  private resolveCalendarId(
+    medico: { googleCalendarId: string | null } | null,
+    config: GoogleCalendarConfig,
+  ): string {
+    return medico?.googleCalendarId || config.fallbackCalendarId;
   }
 
   private buildEvent(

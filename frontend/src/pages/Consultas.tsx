@@ -7,9 +7,17 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ConsultaService, Consulta } from "@/services/ConsultaService";
+import { UsuarioService, MedicoResumo } from "@/services/UsuarioService";
 import { NovaConsultaModal } from "@/components/modals/NovaConsultaModal";
 import { ProntuarioModal } from "@/components/modals/ProntuarioModal";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   AlertTriangle,
   CalendarDays,
@@ -126,6 +134,7 @@ export default function Consultas() {
   const [executando, setExecutando] = useState(false);
   const [sincronizandoId, setSincronizandoId] = useState<number | null>(null);
   const [abrindoAgenda, setAbrindoAgenda] = useState(false);
+  const [medicosComAgenda, setMedicosComAgenda] = useState<MedicoResumo[]>([]);
 
   const carregar = async () => {
     try {
@@ -138,6 +147,13 @@ export default function Consultas() {
   useEffect(() => {
     carregar();
   }, []);
+
+  useEffect(() => {
+    if (!podeGerenciar) return;
+    UsuarioService.listarMedicos()
+      .then((medicos) => setMedicosComAgenda(medicos.filter((m) => m.googleCalendarId)))
+      .catch(() => {});
+  }, [podeGerenciar]);
 
   const consultasFiltradas = consultas.filter((c) => {
     const nomeOk = !busca || (c.paciente?.nome ?? "").toLowerCase().includes(busca.toLowerCase());
@@ -206,10 +222,10 @@ export default function Consultas() {
     });
   };
 
-  const handleAbrirAgenda = async () => {
+  const handleAbrirAgenda = async (medicoId?: number) => {
     setAbrindoAgenda(true);
     try {
-      const { link } = await ConsultaService.buscarLinkAgenda();
+      const { link } = await ConsultaService.buscarLinkAgenda(medicoId);
       window.open(link, "_blank", "noopener,noreferrer");
     } catch (err) {
       const { detail } = httpErrorMessage(err);
@@ -245,10 +261,25 @@ export default function Consultas() {
       actions={
         podeGerenciar ? (
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" onClick={handleAbrirAgenda} disabled={abrindoAgenda} className="gap-2">
-              {abrindoAgenda ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <CalendarDays className="h-4 w-4" />}
-              {abrindoAgenda ? "Abrindo agenda..." : "Abrir Google Agenda"}
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" disabled={abrindoAgenda} className="gap-2">
+                  {abrindoAgenda ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <CalendarDays className="h-4 w-4" />}
+                  {abrindoAgenda ? "Abrindo agenda..." : "Abrir Google Agenda"}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                <DropdownMenuItem onClick={() => handleAbrirAgenda()}>
+                  Agenda geral da clínica
+                </DropdownMenuItem>
+                {medicosComAgenda.length > 0 && <DropdownMenuSeparator />}
+                {medicosComAgenda.map((m) => (
+                  <DropdownMenuItem key={m.id} onClick={() => handleAbrirAgenda(m.id)}>
+                    {m.nome}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
             <Button onClick={handleNova} className="bg-primary hover:bg-primary/90 gap-2">
               <CalendarPlus className="h-4 w-4" />
               Nova Consulta

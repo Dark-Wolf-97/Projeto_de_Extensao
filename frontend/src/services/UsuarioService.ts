@@ -11,6 +11,7 @@ export interface Usuario {
   crm?: string;
   especialidade?: string;
   telefone?: string;
+  googleCalendarId?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -20,6 +21,7 @@ export interface MedicoResumo {
   nome: string;
   crm?: string;
   especialidade?: string;
+  googleCalendarId?: string | null;
 }
 
 export interface ConsultasVinculadas {

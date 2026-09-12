@@ -53,4 +53,11 @@ export class CreateUserDto {
   @IsString()
   @MaxLength(20, { message: 'Telefone pode ter no máximo 20 caracteres' })
   telefone?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(255, {
+    message: 'ID da agenda do Google pode ter no máximo 255 caracteres',
+  })
+  googleCalendarId?: string;
 }
