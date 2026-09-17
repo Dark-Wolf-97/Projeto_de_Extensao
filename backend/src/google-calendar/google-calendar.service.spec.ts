@@ -41,6 +41,7 @@ const consulta = {
     crm: 'CRM-1234',
     especialidade: 'Cardiologia',
     telefone: '(42) 3333-4444',
+    googleCalendarId: null as string | null,
   },
   prontuario: { id: 99 },
 };
@@ -49,6 +50,9 @@ const mockPrisma = {
   consulta: {
     findUnique: jest.fn(),
     update: jest.fn(),
+  },
+  user: {
+    findUnique: jest.fn(),
   },
 };
 
@@ -265,11 +269,103 @@ describe('GoogleCalendarService', () => {
     expect(mockPrisma.consulta.findUnique).not.toHaveBeenCalled();
   });
 
-  it('deve fornecer link da agenda sem expor credenciais', () => {
-    const result = service.buscarLinkAgenda();
+  it('deve fornecer link da agenda geral sem expor credenciais', async () => {
+    const result = await service.buscarLinkAgenda();
 
     expect(result.link).toContain('https://calendar.google.com/');
     expect(result.link).toContain(encodeURIComponent(CALENDAR_ID));
     expect(result.link).not.toContain(PRIVATE_KEY);
+  });
+
+  it('deve fornecer o link da agenda de um médico específico', async () => {
+    mockPrisma.user.findUnique.mockResolvedValue({
+      googleCalendarId: 'agenda-medico@group.calendar.google.com',
+    });
+
+    const result = await service.buscarLinkAgenda(2);
+
+    expect(mockPrisma.user.findUnique).toHaveBeenCalledWith({
+      where: { id: 2 },
+      select: { googleCalendarId: true },
+    });
+    expect(result.link).toContain(
+      encodeURIComponent('agenda-medico@group.calendar.google.com'),
+    );
+  });
+
+  it('deve lançar NotFoundException ao buscar link de médico sem agenda configurada', async () => {
+    mockPrisma.user.findUnique.mockResolvedValue({ googleCalendarId: null });
+
+    await expect(service.buscarLinkAgenda(2)).rejects.toThrow(
+      'Este médico ainda não tem uma agenda do Google configurada.',
+    );
+  });
+
+  it('deve usar a agenda do médico em vez da agenda geral quando configurada', async () => {
+    mockPrisma.consulta.findUnique.mockResolvedValue({
+      ...consulta,
+      medico: { ...consulta.medico, googleCalendarId: 'agenda-medico@group.calendar.google.com' },
+    });
+
+    await service.cadastrarOuRecadastrar(consulta.id);
+
+    const request = insert.mock.calls[0][0];
+    expect(request.calendarId).toBe('agenda-medico@group.calendar.google.com');
+  });
+
+  it('deve remover da agenda antiga e recriar na agenda nova quando o médico da consulta muda', async () => {
+    mockPrisma.consulta.findUnique.mockResolvedValue({
+      ...consulta,
+      googleCalendarEventId: 'evento-existente',
+      googleCalendarId: 'agenda-antiga@group.calendar.google.com',
+      medico: { ...consulta.medico, googleCalendarId: 'agenda-nova@group.calendar.google.com' },
+    });
+
+    await service.cadastrarOuRecadastrar(consulta.id);
+
+    expect(remove).toHaveBeenCalledWith({
+      calendarId: 'agenda-antiga@group.calendar.google.com',
+      eventId: 'evento-existente',
+    });
+    expect(update).not.toHaveBeenCalled();
+    expect(insert).toHaveBeenCalledWith(
+      expect.objectContaining({ calendarId: 'agenda-nova@group.calendar.google.com' }),
+    );
+    expect(mockPrisma.consulta.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          googleCalendarId: 'agenda-nova@group.calendar.google.com',
+        }),
+      }),
+    );
+  });
+
+  describe('removerEventoSemInterromperPortal()', () => {
+    it('deve remover o evento da agenda informada', async () => {
+      await service.removerEventoSemInterromperPortal(
+        'evento-1',
+        'agenda-medico@group.calendar.google.com',
+      );
+
+      expect(remove).toHaveBeenCalledWith({
+        calendarId: 'agenda-medico@group.calendar.google.com',
+        eventId: 'evento-1',
+      });
+    });
+
+    it('deve cair na agenda geral quando nenhuma agenda específica é informada', async () => {
+      await service.removerEventoSemInterromperPortal('evento-1');
+
+      expect(remove).toHaveBeenCalledWith({
+        calendarId: CALENDAR_ID,
+        eventId: 'evento-1',
+      });
+    });
+
+    it('não deve fazer nada quando não há eventId', async () => {
+      await service.removerEventoSemInterromperPortal(null);
+
+      expect(remove).not.toHaveBeenCalled();
+    });
   });
 });

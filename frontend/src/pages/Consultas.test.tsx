@@ -1,7 +1,9 @@
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import Consultas from './Consultas';
 import { ConsultaService, type Consulta } from '@/services/ConsultaService';
+import { UsuarioService } from '@/services/UsuarioService';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from '@/components/ui/sonner';
 
@@ -11,6 +13,12 @@ vi.mock('@/services/ConsultaService', () => ({
     deletar: vi.fn(),
     recadastrarNaAgenda: vi.fn(),
     buscarLinkAgenda: vi.fn(),
+  },
+}));
+
+vi.mock('@/services/UsuarioService', () => ({
+  UsuarioService: {
+    listarMedicos: vi.fn(),
   },
 }));
 
@@ -51,6 +59,7 @@ const mockListar = ConsultaService.listar as ReturnType<typeof vi.fn>;
 const mockDeletar = ConsultaService.deletar as ReturnType<typeof vi.fn>;
 const mockRecadastrar = ConsultaService.recadastrarNaAgenda as ReturnType<typeof vi.fn>;
 const mockBuscarLinkAgenda = ConsultaService.buscarLinkAgenda as ReturnType<typeof vi.fn>;
+const mockListarMedicos = UsuarioService.listarMedicos as ReturnType<typeof vi.fn>;
 const mockUseAuth = useAuth as ReturnType<typeof vi.fn>;
 const mockToastSuccess = toast.success as ReturnType<typeof vi.fn>;
 const mockToastError = toast.error as ReturnType<typeof vi.fn>;
@@ -117,6 +126,7 @@ beforeEach(() => {
     googleCalendarEventLink: 'https://calendar.google.com/event?eid=atualizado',
   });
   mockUseAuth.mockReturnValue(authAdmin);
+  mockListarMedicos.mockResolvedValue([]);
   vi.spyOn(window, 'open').mockImplementation(() => null);
 });
 
@@ -170,13 +180,16 @@ describe('Consultas', () => {
   });
 
   it('ADMIN deve ver e abrir o botão geral do Google Agenda', async () => {
+    const user = userEvent.setup();
     render(<Consultas />);
 
     await screen.findByText('Maria Silva');
-    fireEvent.click(screen.getByRole('button', { name: 'Abrir Google Agenda' }));
+    await user.click(screen.getByRole('button', { name: 'Abrir Google Agenda' }));
+    await user.click(await screen.findByText('Agenda geral da clínica'));
 
     await waitFor(() => {
       expect(mockBuscarLinkAgenda).toHaveBeenCalledTimes(1);
+      expect(mockBuscarLinkAgenda).toHaveBeenCalledWith(undefined);
       expect(window.open).toHaveBeenCalledWith(
         'https://calendar.google.com/calendar/u/0/r?cid=agenda',
         '_blank',
@@ -185,7 +198,30 @@ describe('Consultas', () => {
     });
   });
 
+  it('deve listar as agendas dos médicos configurados no menu', async () => {
+    const user = userEvent.setup();
+    mockListarMedicos.mockResolvedValue([
+      { id: 2, nome: 'Dr. Carlos', googleCalendarId: 'agenda-carlos@group.calendar.google.com' },
+      { id: 5, nome: 'Dra. Ana', googleCalendarId: null },
+    ]);
+    render(<Consultas />);
+
+    await screen.findByText('Maria Silva');
+    await user.click(screen.getByRole('button', { name: 'Abrir Google Agenda' }));
+
+    expect(await screen.findByText('Agenda geral da clínica')).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'Dr. Carlos' })).toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: 'Dra. Ana' })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('menuitem', { name: 'Dr. Carlos' }));
+
+    await waitFor(() => {
+      expect(mockBuscarLinkAgenda).toHaveBeenCalledWith(2);
+    });
+  });
+
   it('deve mostrar loading ao buscar o link geral da agenda', async () => {
+    const user = userEvent.setup();
     let resolver: ((value: { link: string }) => void) | undefined;
     mockBuscarLinkAgenda.mockReturnValue(
       new Promise((resolve) => {
@@ -195,7 +231,8 @@ describe('Consultas', () => {
     render(<Consultas />);
 
     await screen.findByText('Maria Silva');
-    fireEvent.click(screen.getByRole('button', { name: 'Abrir Google Agenda' }));
+    await user.click(screen.getByRole('button', { name: 'Abrir Google Agenda' }));
+    await user.click(await screen.findByText('Agenda geral da clínica'));
 
     expect(screen.getByRole('button', { name: 'Abrindo agenda...' })).toBeDisabled();
     resolver?.({ link: 'https://calendar.google.com/calendar' });

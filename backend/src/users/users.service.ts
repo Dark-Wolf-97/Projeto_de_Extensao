@@ -17,6 +17,7 @@ const SELECT_SAFE = {
   crm: true,
   especialidade: true,
   telefone: true,
+  googleCalendarId: true,
   createdAt: true,
   updatedAt: true,
 };
@@ -50,6 +51,7 @@ export class UsersService {
         crm: dto.crm,
         especialidade: dto.especialidade,
         telefone: dto.telefone,
+        googleCalendarId: dto.googleCalendarId,
       },
       select: SELECT_SAFE,
     });
@@ -73,7 +75,13 @@ export class UsersService {
   findMedicos() {
     return this.prisma.user.findMany({
       where: { role: 'MEDICO' },
-      select: { id: true, nome: true, crm: true, especialidade: true },
+      select: {
+        id: true,
+        nome: true,
+        crm: true,
+        especialidade: true,
+        googleCalendarId: true,
+      },
       orderBy: { nome: 'asc' },
     });
   }
@@ -112,6 +120,7 @@ export class UsersService {
       crm: dto.crm,
       especialidade: dto.especialidade,
       telefone: dto.telefone,
+      googleCalendarId: dto.googleCalendarId,
     };
 
     if (dto.senha) {
