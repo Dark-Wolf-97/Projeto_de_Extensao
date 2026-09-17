@@ -58,6 +58,7 @@ const FORM_INICIAL: Omit<Usuario, "id" | "createdAt" | "updatedAt"> = {
   crm: "",
   especialidade: "",
   telefone: "",
+  googleCalendarId: "",
 };
 
 export function UsuarioModal({ open, onOpenChange, onSaved, usuario }: Props) {
@@ -79,6 +80,7 @@ export function UsuarioModal({ open, onOpenChange, onSaved, usuario }: Props) {
         crm: usuario.crm ?? "",
         especialidade: usuario.especialidade ?? "",
         telefone: formatTelefone(usuario.telefone ?? ""),
+        googleCalendarId: usuario.googleCalendarId ?? "",
       });
     } else {
       setForm(FORM_INICIAL);
@@ -114,6 +116,7 @@ export function UsuarioModal({ open, onOpenChange, onSaved, usuario }: Props) {
       if (form.role === "MEDICO") {
         payload.crm = form.crm || undefined;
         payload.especialidade = form.especialidade || undefined;
+        payload.googleCalendarId = form.googleCalendarId || undefined;
       }
 
       if (form.senha) {
@@ -285,6 +288,21 @@ export function UsuarioModal({ open, onOpenChange, onSaved, usuario }: Props) {
                   maxLength={100}
                   required
                 />
+              </div>
+
+              <div className="grid gap-2 sm:col-span-2">
+                <Label htmlFor="googleCalendarId">Agenda do Google (opcional)</Label>
+                <Input
+                  id="googleCalendarId"
+                  value={form.googleCalendarId ?? ""}
+                  onChange={(e) => set("googleCalendarId", e.target.value)}
+                  placeholder="ID da agenda, ex: abc123...@group.calendar.google.com"
+                  maxLength={255}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Encontrado em Configurações da agenda → Integrar agenda → ID da agenda, no Google Agenda.
+                  Se não for preenchido, as consultas deste médico vão para a agenda geral da clínica.
+                </p>
               </div>
             </>
           )}

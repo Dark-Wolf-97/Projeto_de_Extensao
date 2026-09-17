@@ -50,7 +50,10 @@ export const ConsultaService = {
   recadastrarNaAgenda: (id: number): Promise<Consulta> =>
     http<Consulta>(`/consultas/${id}/google-calendar`, { method: "POST" }),
 
-  buscarLinkAgenda: (): Promise<{ link: string }> => http<{ link: string }>("/consultas/google-calendar/link"),
+  buscarLinkAgenda: (medicoId?: number): Promise<{ link: string }> =>
+    http<{ link: string }>(
+      `/consultas/google-calendar/link${medicoId ? `?medicoId=${medicoId}` : ""}`,
+    ),
 
   deletar: (id: number): Promise<void> => http<void>(`/consultas/${id}`, { method: "DELETE" }),
 };

@@ -37,16 +37,17 @@ enum StatusMensagem {
 // ─── Models ───────────────────────────────────────────────────────────────────
 
 model User {
-  id            Int      @id @default(autoincrement())
-  nome          String   @db.VarChar(100)
-  email         String   @unique @db.VarChar(150)
-  senha         String   @db.VarChar(255)
-  role          Role     @default(SECRETARIA)
-  crm           String?  @unique @db.VarChar(20)
-  especialidade String?  @db.VarChar(100)
-  telefone      String?  @db.VarChar(20)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id               Int      @id @default(autoincrement())
+  nome             String   @db.VarChar(100)
+  email            String   @unique @db.VarChar(150)
+  senha            String   @db.VarChar(255)
+  role             Role     @default(SECRETARIA)
+  crm              String?  @unique @db.VarChar(20)
+  especialidade    String?  @db.VarChar(100)
+  telefone         String?  @db.VarChar(20)
+  googleCalendarId String?  @db.VarChar(255)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   consultas Consulta[]
 
@@ -80,6 +81,7 @@ model Consulta {
   status                  StatusConsulta @default(AGENDADA)
   observacoes             String?        @db.Text
   googleCalendarEventId   String?        @db.VarChar(255)
+  googleCalendarId        String?        @db.VarChar(255)
   googleCalendarEventLink String?        @db.Text
   googleCalendarSyncedAt  DateTime?
   googleCalendarLastError String?        @db.Text

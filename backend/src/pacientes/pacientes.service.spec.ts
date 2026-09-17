@@ -56,7 +56,7 @@ describe('PacientesService', () => {
       });
       expect(prisma.consulta.findMany).toHaveBeenCalledWith({
         where: { pacienteId: 1 },
-        select: { googleCalendarEventId: true },
+        select: { googleCalendarEventId: true, googleCalendarId: true },
       });
       expect(googleCalendar.removerEventoSemInterromperPortal).not.toHaveBeenCalled();
       expect(prisma.paciente.delete).toHaveBeenCalledWith({ where: { id: 1 } });
@@ -65,15 +65,18 @@ describe('PacientesService', () => {
     it('deve excluir paciente com consultas canceladas/realizadas, removendo os eventos da agenda de cada uma', async () => {
       prisma.paciente.findUnique.mockResolvedValue({ id: 1, nome: 'Maria' });
       prisma.consulta.findMany.mockResolvedValue([
-        { googleCalendarEventId: 'evt-1' },
-        { googleCalendarEventId: null },
+        { googleCalendarEventId: 'evt-1', googleCalendarId: 'agenda-medico@group.calendar.google.com' },
+        { googleCalendarEventId: null, googleCalendarId: null },
       ]);
       prisma.paciente.delete.mockResolvedValue({ id: 1, nome: 'Maria' });
 
       await service.remover(1);
 
-      expect(googleCalendar.removerEventoSemInterromperPortal).toHaveBeenCalledWith('evt-1');
-      expect(googleCalendar.removerEventoSemInterromperPortal).toHaveBeenCalledWith(null);
+      expect(googleCalendar.removerEventoSemInterromperPortal).toHaveBeenCalledWith(
+        'evt-1',
+        'agenda-medico@group.calendar.google.com',
+      );
+      expect(googleCalendar.removerEventoSemInterromperPortal).toHaveBeenCalledWith(null, null);
       expect(prisma.paciente.delete).toHaveBeenCalledWith({ where: { id: 1 } });
     });
 

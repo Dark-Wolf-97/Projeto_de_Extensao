@@ -7,6 +7,7 @@ import {
   Patch,
   Post,
   Put,
+  Query,
   Request,
   UseGuards,
 } from '@nestjs/common';
@@ -26,8 +27,8 @@ export class ConsultasController {
 
   @Get('google-calendar/link')
   @Roles(Role.ADMIN, Role.SECRETARIA)
-  buscarLinkAgenda() {
-    return this.service.buscarLinkAgenda();
+  buscarLinkAgenda(@Query('medicoId') medicoId?: string) {
+    return this.service.buscarLinkAgenda(medicoId ? Number(medicoId) : undefined);
   }
 
   @Get()
